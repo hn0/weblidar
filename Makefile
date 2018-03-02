@@ -1,7 +1,7 @@
 GOPATH=$(shell pwd)
 GONAME="lasserver"
 PID=/tmp/go-$(GONAME).pid
-DATASOURCE=$(GOPATH)"/data/tmp"
+DATASOURCE=$(GOPATH)"/data/sample.las"
 
 build:
 	@echo "Building $(GONAME)"
@@ -11,4 +11,4 @@ run:
 	@GOPATH=$(GOPATH) go run src/app/app.go $(DATASOURCE)
 
 test:
-	@GOPATH=$(GOPATH) go test template
+	@GOPATH=$(GOPATH) go test model
