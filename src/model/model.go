@@ -21,11 +21,11 @@ func CreateModel(path string) *Model {
     defer lf.Close()
 
     m.Numpts = lf.Header.NumberPoints
-    for i := 0; i < m.Numpts; i++ {
-    	if pt, err := lf.LasPoint(i); err == nil {
-    		fmt.Println("Point:", pt)
-    	}
-    }
+    // for i := 0; i < m.Numpts; i++ {
+    // 	if pt, err := lf.LasPoint(i); err == nil {
+    // 		fmt.Println("Point:", pt)
+    // 	}
+    // }
     
 
 	return m
