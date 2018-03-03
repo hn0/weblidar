@@ -86,7 +86,7 @@ func (m *Model) calculate_dist() {
 	// dist := make([]uint8, n*n)
 	// for now let just use cpu and see performance!
 	r := [2]float64{math.MaxFloat64, 0}
-	n := 120
+	n := 10
 	for i := 0; i < n; i++ {
 		for j := n; j > i; j-- {
 			x := square(m.Pts[i].x - m.Pts[j].x)

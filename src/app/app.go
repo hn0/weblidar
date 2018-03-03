@@ -1,10 +1,11 @@
 package main
 
 import (
+	"clwrapper"
 	"fmt"
+	"model"
 	"net/http"
 	"os"
-	"model"
 )
 
 var PORT int = 3000
@@ -26,9 +27,15 @@ func main() {
 		os.Exit(1)
 	}
 
+	// TODO: check for opencl
+	if !clwrapper.HasSupport() {
+		fmt.Println("Having open cl support and good performance graphics card is necessary for this application")
+		os.Exit(1)
+	}
+
 	// TODO: check the structure of the file, in new class
 	//  and build structure for ....
-	m := model.CreateModel(os.Args[1]);
+	m := model.CreateModel(os.Args[1])
 	fmt.Println(m)
 
 	fmt.Println("Starting web server on port", PORT)
