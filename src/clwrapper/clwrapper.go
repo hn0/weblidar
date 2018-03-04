@@ -8,10 +8,11 @@ import (
 
 type clwrapper struct {
 	// plat  cl.CL_platform_id
-	dev   []cl.CL_device_id
-	ctx   cl.CL_context
-	lock  bool
-	valid bool
+	dev     []cl.CL_device_id
+	ctx     cl.CL_context
+	program cl.CL_program
+	lock    bool
+	valid   bool
 }
 
 var v *clwrapper
@@ -19,12 +20,12 @@ var v *clwrapper
 // simple test matvec!
 func MatVec() bool {
 	// create context
-	if get_context() {
+	if get_context() && read_program("dotvect.cl") {
 		// read program
-		if read_program("dotvect.cl") {
 
-			fmt.Println("ready to continue")
-		}
+		run_program([]byte("matvec_mul"))
+		// fmt.Println("ready to continue")
+
 	}
 	return false
 }
@@ -64,7 +65,22 @@ func HasSupport() bool {
 	return false
 }
 
+func run_program(name []byte) {
+	v.lock = true
+	var err cl.CL_int
+	kernel := cl.CLCreateKernel(v.program, name, &err)
+	if err < 0 {
+		fmt.Println("ERROR!")
+		return
+	}
+	// now the memory struff
+	fmt.Println("DO THE MEMORY STUFF!!!", kernel)
+}
+
 func read_program(filename string) bool {
+	if v.lock {
+		return false
+	}
 	if fp, err := os.Open(filename); err == nil {
 		defer fp.Close()
 
@@ -79,7 +95,19 @@ func read_program(filename string) bool {
 		var err cl.CL_int
 		program := cl.CLCreateProgramWithSource(v.ctx, 1, program_buffer[:], program_size[:], &err)
 		if err >= 0 {
-			fmt.Println(program)
+			err = cl.CLBuildProgram(program, 1, v.dev[:], nil, nil, nil)
+			if err < 0 {
+				fmt.Println("Failed to compile provided program!")
+				var log_size cl.CL_size_t
+				var err_msg interface{}
+				cl.CLGetProgramBuildInfo(program, v.dev[0], cl.CL_PROGRAM_BUILD_LOG, 0, nil, &log_size)
+				cl.CLGetProgramBuildInfo(program, v.dev[0], cl.CL_PROGRAM_BUILD_LOG, log_size, &err_msg, nil)
+				fmt.Printf("\tfail msg:\n%s\n", err_msg)
+				return false
+			}
+
+			v.program = program
+			return true
 		}
 	}
 	return false
