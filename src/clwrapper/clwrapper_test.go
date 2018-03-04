@@ -9,6 +9,11 @@ func TestSupport(t *testing.T) {
 		t.Error("No supporting opencl hardware detected")
 		t.FailNow()
 	}
-	t.Error("UNDER DEVELOPMENT!")
-	t.Fail()
+}
+
+func TestMatvec(t *testing.T) {
+	if !MatVec() {
+		t.Error("UNDER DEVELOPMENT!")
+		t.FailNow()
+	}
 }
