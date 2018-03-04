@@ -9,4 +9,6 @@ func TestSupport(t *testing.T) {
 		t.Error("No supporting opencl hardware detected")
 		t.FailNow()
 	}
+	t.Error("UNDER DEVELOPMENT!")
+	t.Fail()
 }

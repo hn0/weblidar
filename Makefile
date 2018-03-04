@@ -2,16 +2,18 @@ GOPATH=$(shell pwd)
 GONAME="lasserver"
 PID=/tmp/go-$(GONAME).pid
 DATASOURCE=$(GOPATH)"/data/sample.las"
-CFLAGS="-I/usr/include/CL"
-LDFLAGS="-L/usr/lib/clc"
 
-build:
+build: clean
 	@echo "Building $(GONAME)"
-	@GOPATH=$(GOPATH) go build -v -o bin/$(GONAME) app
+	@GOPATH=$(GOPATH) go build -tags="cl11" -v -o bin/$(GONAME) app
 
 run:
-	@GOPATH=$(GOPATH) LDFLAGS=${LDFLAGS} CGO_CFLAGS=${CFLAGS} go run src/app/app.go $(DATASOURCE)
+	@GOPATH=$(GOPATH) go run -tags="cl11" src/app/app.go $(DATASOURCE)
 
 test:
-	@GOPATH=$(GOPATH) CGO_CFLAGS=${CFLAGS} go test clwrapper
-	@GOPATH=$(GOPATH) go test model
+	@GOPATH=$(GOPATH) go test -tags="cl11" clwrapper
+	@GOPATH=$(GOPATH) go test -tags="cl11" model
+
+clean:
+	@echo "cleaning ..."
+	rm -rf bin/$(GONAME)
