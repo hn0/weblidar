@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/rainliu/gocl/cl"
 	"os"
+	"unsafe"
 )
 
 type clwrapper struct {
@@ -70,11 +71,33 @@ func run_program(name []byte) {
 	var err cl.CL_int
 	kernel := cl.CLCreateKernel(v.program, name, &err)
 	if err < 0 {
-		fmt.Println("ERROR!")
+		fmt.Println("ERROR!", kernel, err)
 		return
 	}
+
 	// now the memory struff
+	var mat [16]float64
+	for i := 0; i < 16; i++ {
+		mat[i] = float64(i)
+	}
+
+	var vec, res [4]float64
+	var vec_buff, res_buff cl.CL_mem
+
 	fmt.Println("DO THE MEMORY STUFF!!!", kernel)
+	mat_buff := cl.CLCreateBuffer(v.ctx, cl.CL_MEM_READ_ONLY|cl.CL_MEM_COPY_HOST_PTR,
+		cl.CL_size_t(unsafe.Sizeof(mat)), unsafe.Pointer(&mat[0]), &err)
+
+	if err < 0 {
+		fmt.Println("Error creating buffer")
+		return
+	}
+
+	vec_buff = cl.CLCreateBuffer(v.ctx, cl.CL_MEM_READ_ONLY|cl.CL_MEM_COPY_HOST_PTR,
+		cl.CL_size_t(unsafe.Sizeof(vec)), unsafe.Pointer(&vec[0]), &err)
+	res_buff = cl.CLCreateBuffer(v.ctx, cl.CL_MEM_WRITE_ONLY, cl.CL_size_t(unsafe.Sizeof(res)), unsafe.Pointer(&res[0]), &err)
+
+	fmt.Println(mat_buff, vec_buff, res_buff)
 }
 
 func read_program(filename string) bool {

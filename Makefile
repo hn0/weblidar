@@ -5,7 +5,7 @@ DATASOURCE=$(GOPATH)"/data/sample.las"
 
 build: clean
 	@echo "Building $(GONAME)"
-	@GOPATH=$(GOPATH) go build -tags="cl11" -v -o bin/$(GONAME) app
+	@GOPATH=$(GOPATH) go build -tags="cl11" -gcflags="-Wno-deprecated-declarations" -o bin/$(GONAME) app
 
 run:
 	@GOPATH=$(GOPATH) go run -tags="cl11" src/app/app.go $(DATASOURCE)
