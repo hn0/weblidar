@@ -18,8 +18,8 @@ func TestMatvec(t *testing.T) {
 		data[i] = float32(i)
 	}
 
-	p := Program{"square_test.cl", "square_test", data[:]}
-	if !RunProgram(&p) {
+	p := Program{"square_test.cl", "square_test"}
+	if !RunProgram(&p, data) {
 		t.Error("Running matvec example failed")
 		t.Fail()
 	}

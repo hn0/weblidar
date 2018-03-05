@@ -10,7 +10,6 @@ import (
 type Program struct {
 	Source  string
 	FncName string
-	Data    []float32
 }
 
 type cldev struct {
@@ -20,7 +19,7 @@ type cldev struct {
 
 var v *cldev
 
-func RunProgram(p *Program) bool {
+func RunProgram(p *Program, data [16]float32) bool {
 
 	if v.numdev < 1 {
 		fmt.Println("Cannot run cl program without any device")
@@ -55,7 +54,7 @@ func RunProgram(p *Program) bool {
 
 		var mat_buff, res_buff cl.CL_mem
 		mat_buff = cl.CLCreateBuffer(ctx, cl.CL_MEM_READ_ONLY|cl.CL_MEM_COPY_HOST_PTR,
-			cl.CL_size_t(unsafe.Sizeof(p.Data)), unsafe.Pointer(&p.Data[0]), &err)
+			cl.CL_size_t(unsafe.Sizeof(data)), unsafe.Pointer(&data[0]), &err)
 		if assert(err, "Cannot create input buffer") {
 			return false
 		}
@@ -81,7 +80,7 @@ func RunProgram(p *Program) bool {
 			return false
 		}
 
-		var work_unit_per_kernel = [1]cl.CL_size_t{4}
+		var work_unit_per_kernel = [2]cl.CL_size_t{8} // split!?
 		err = cl.CLEnqueueNDRangeKernel(queue, kernel, 1, nil, work_unit_per_kernel[:], nil, 0, nil, nil)
 		if assert(err, "cannot create kernel queue") {
 			return false
@@ -93,6 +92,7 @@ func RunProgram(p *Program) bool {
 		cl.CLReleaseMemObject(mat_buff)
 		cl.CLReleaseMemObject(res_buff)
 
+		fmt.Println(data)
 		fmt.Println(res)
 
 	}
