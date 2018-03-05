@@ -12,8 +12,17 @@ func TestSupport(t *testing.T) {
 }
 
 func TestMatvec(t *testing.T) {
-	if !MatVec() {
-		t.Error("UNDER DEVELOPMENT!")
-		t.FailNow()
+
+	var data [16]float32
+	for i := 0; i < 16; i++ {
+		data[i] = float32(i)
 	}
+
+	p := Program{"square_test.cl", "square_test", data[:]}
+	if !RunProgram(&p) {
+		t.Error("Running matvec example failed")
+		t.Fail()
+	}
+	t.Error("UNDER DEVELOPMENT!")
+	t.FailNow()
 }
