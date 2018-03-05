@@ -24,7 +24,7 @@ func MatVec() bool {
 	if get_context() && read_program("dotvect.cl") {
 		// read program
 
-		run_program([]byte("matvec_mul"))
+		run_program([]byte("matvec_mult"))
 		// fmt.Println("ready to continue")
 
 	}
@@ -81,10 +81,9 @@ func run_program(name []byte) {
 		mat[i] = float64(i)
 	}
 
-	var vec, res [4]float64
+	var vec, res [4]float32
 	var vec_buff, res_buff cl.CL_mem
 
-	fmt.Println("DO THE MEMORY STUFF!!!", kernel)
 	mat_buff := cl.CLCreateBuffer(v.ctx, cl.CL_MEM_READ_ONLY|cl.CL_MEM_COPY_HOST_PTR,
 		cl.CL_size_t(unsafe.Sizeof(mat)), unsafe.Pointer(&mat[0]), &err)
 
@@ -98,6 +97,39 @@ func run_program(name []byte) {
 	res_buff = cl.CLCreateBuffer(v.ctx, cl.CL_MEM_WRITE_ONLY, cl.CL_size_t(unsafe.Sizeof(res)), unsafe.Pointer(&res[0]), &err)
 
 	fmt.Println(mat_buff, vec_buff, res_buff)
+	err = cl.CLSetKernelArg(kernel, 0, cl.CL_size_t(unsafe.Sizeof(mat_buff)), unsafe.Pointer(&mat_buff))
+	if err < 0 {
+		fmt.Println("Failed to set kernel args")
+	}
+	cl.CLSetKernelArg(kernel, 1, cl.CL_size_t(unsafe.Sizeof(vec_buff)), unsafe.Pointer(&vec_buff))
+	cl.CLSetKernelArg(kernel, 2, cl.CL_size_t(unsafe.Sizeof(res_buff)), unsafe.Pointer(&res_buff))
+
+	// at last, create command queue
+	queue := cl.CLCreateCommandQueue(v.ctx, v.dev[0], 0, &err)
+	if err < 0 {
+		fmt.Println("Failed at creating queue")
+	}
+
+	var work_unit_per_kernel = [1]cl.CL_size_t{4}
+	err = cl.CLEnqueueNDRangeKernel(queue, kernel, 1, nil, work_unit_per_kernel[:], nil, 0, nil, nil)
+	if err < 0 {
+		fmt.Println("Assertion needed!", err)
+	}
+	err = cl.CLEnqueueReadBuffer(queue, res_buff, cl.CL_TRUE, 0, cl.CL_size_t(unsafe.Sizeof(res)), unsafe.Pointer(&res[0]), 0, nil, nil)
+	if err < 0 {
+		fmt.Println("Assertion needed2!", err)
+	}
+
+	fmt.Println(res)
+
+	// cleanup the stuff
+	cl.CLReleaseMemObject(mat_buff)
+	cl.CLReleaseMemObject(vec_buff)
+	cl.CLReleaseMemObject(res_buff)
+	cl.CLReleaseKernel(kernel)
+	cl.CLReleaseCommandQueue(queue)
+	cl.CLReleaseProgram(v.program)
+	cl.CLReleaseContext(v.ctx)
 }
 
 func read_program(filename string) bool {
