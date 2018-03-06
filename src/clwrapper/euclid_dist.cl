@@ -10,6 +10,8 @@ __kernel void euclid_dist(__global float* inx,
 
 
     for( int i = start; i < sz; i += off ){
+        // let say neighbor cnt will be enough?
+        //x := square(m.Pts[i].x - m.Pts[j].x)
         // float cnt = 0;
         // for( int j = i-1; j > 0; j -= off ){
         //     cnt++;
@@ -17,6 +19,6 @@ __kernel void euclid_dist(__global float* inx,
         // out[i] = in[i] * 100 + cnt;
 
         // distance from origin
-        dist[i] = sqrt( inx[i] + iny[i] + inz[i] );
+        dist[i] = sqrt( pown(inx[i], 2) + pown(iny[i], 2) + pown(inz[i], 2) );
     }
 }

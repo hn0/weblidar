@@ -10,7 +10,7 @@ import (
 type Program struct {
 	Source  string
 	FncName string
-	Val     func(int) float32
+	Val     func(int) (float32, float32, float32)
 }
 
 type cldev struct {
@@ -19,7 +19,7 @@ type cldev struct {
 }
 
 var v *cldev
-var WORK_UNIT_SZ int = 32
+var WORK_UNIT_SZ int = 16
 
 func RunProgram(p *Program, datasz int) bool {
 
@@ -50,9 +50,7 @@ func RunProgram(p *Program, datasz int) bool {
 	// var res [64]float32
 
 	for i := 0; i < datasz; i++ {
-		datax[i] = p.Val(i)
-		datay[i] = p.Val(i)
-		dataz[i] = p.Val(i)
+		datax[i], datay[i], dataz[i] = p.Val(i)
 		// res[i] = 1
 	}
 	for i := datasz - 1; i < wunit*WORK_UNIT_SZ; i++ {
