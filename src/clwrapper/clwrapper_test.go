@@ -18,7 +18,7 @@ func TestMatvec(t *testing.T) {
 	}
 	p := Program{"euclid_dist.cl", "euclid_dist", valfnc}
 
-	if !RunProgram(&p, 59) {
+	if !RunProgram(&p, 64) {
 		t.Error("Running matvec example failed")
 		t.Fail()
 	}

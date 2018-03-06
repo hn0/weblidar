@@ -41,14 +41,25 @@ func RunProgram(p *Program, datasz int) bool {
 	if datasz%WORK_UNIT_SZ != 0 {
 		wunit++
 	}
-	data := make([]float32, wunit*WORK_UNIT_SZ)
+	datax := make([]float32, wunit*WORK_UNIT_SZ)
+	datay := make([]float32, wunit*WORK_UNIT_SZ)
+	dataz := make([]float32, wunit*WORK_UNIT_SZ)
 	res := make([]float32, wunit*WORK_UNIT_SZ)
 
+	// var data [64]float32
+	// var res [64]float32
+
 	for i := 0; i < datasz; i++ {
-		data[i] = p.Val(i)
+		datax[i] = p.Val(i)
+		datay[i] = p.Val(i)
+		dataz[i] = p.Val(i)
+		// res[i] = 1
 	}
 	for i := datasz - 1; i < wunit*WORK_UNIT_SZ; i++ {
-		data[i] = 0
+		datax[i] = 0
+		datay[i] = 0
+		dataz[i] = 0
+		// res[i] = 1
 	}
 
 	var err cl.CL_int
@@ -77,14 +88,20 @@ func RunProgram(p *Program, datasz int) bool {
 			return false
 		}
 
-		var mat_buff, res_buff cl.CL_mem
-		mat_buff = cl.CLCreateBuffer(ctx, cl.CL_MEM_READ_ONLY|cl.CL_MEM_COPY_HOST_PTR,
-			cl.CL_size_t(unsafe.Sizeof(data)), unsafe.Pointer(&data[0]), &err)
+		var matx_buff, maty_buff, matz_buff, res_buff cl.CL_mem
+		matx_buff = cl.CLCreateBuffer(ctx, cl.CL_MEM_READ_ONLY|cl.CL_MEM_COPY_HOST_PTR,
+			cl.CL_size_t(int(unsafe.Sizeof(datax[0]))*len(datax)), unsafe.Pointer(&datax[0]), &err)
 		if assert(err, "Cannot create input buffer") {
 			return false
 		}
-		// ws_buff = cl.CLCreateBuffer(ctx, cl.CL_MEM_READ_ONLY|cl.CL_MEM_COPY_HOST_PTR, cl.CL_size_t(unsafe.Sizeof(WORK_UNIT_SZ)), unsafe.Pointer(&WORK_UNIT_SZ), nil)
-		res_buff = cl.CLCreateBuffer(ctx, cl.CL_MEM_WRITE_ONLY, cl.CL_size_t(unsafe.Sizeof(res)), nil, nil)
+		maty_buff = cl.CLCreateBuffer(ctx, cl.CL_MEM_READ_ONLY|cl.CL_MEM_COPY_HOST_PTR,
+			cl.CL_size_t(int(unsafe.Sizeof(datax[0]))*len(datax)), unsafe.Pointer(&datay[0]), nil)
+		matz_buff = cl.CLCreateBuffer(ctx, cl.CL_MEM_READ_ONLY|cl.CL_MEM_COPY_HOST_PTR,
+			cl.CL_size_t(int(unsafe.Sizeof(datax[0]))*len(datax)), unsafe.Pointer(&dataz[0]), &err)
+		res_buff = cl.CLCreateBuffer(ctx, cl.CL_MEM_WRITE_ONLY, cl.CL_size_t(int(unsafe.Sizeof(res[0]))*len(res)), nil, &err)
+		if assert(err, "Cannot create output buffer") {
+			return false
+		}
 
 		kernel := cl.CLCreateKernel(program, []byte(p.FncName), &err)
 		if assert(err, "Cannot create kernel") {
@@ -92,12 +109,13 @@ func RunProgram(p *Program, datasz int) bool {
 		}
 		defer cl.CLReleaseKernel(kernel)
 
-		err = cl.CLSetKernelArg(kernel, 0, cl.CL_size_t(unsafe.Sizeof(mat_buff)), unsafe.Pointer(&mat_buff))
+		err = cl.CLSetKernelArg(kernel, 0, cl.CL_size_t(unsafe.Sizeof(matx_buff)), unsafe.Pointer(&matx_buff))
 		if assert(err, "Cannot set kernel args") {
 			return false
 		}
-		cl.CLSetKernelArg(kernel, 1, cl.CL_size_t(unsafe.Sizeof(res_buff)), unsafe.Pointer(&res_buff))
-		// cl.CLSetKernelArg(kernel, 2, cl.CL_size_t(unsafe.Sizeof(ws_buff)), unsafe.Pointer(&ws_buff))
+		cl.CLSetKernelArg(kernel, 1, cl.CL_size_t(unsafe.Sizeof(maty_buff)), unsafe.Pointer(&maty_buff))
+		cl.CLSetKernelArg(kernel, 2, cl.CL_size_t(unsafe.Sizeof(matz_buff)), unsafe.Pointer(&matz_buff))
+		cl.CLSetKernelArg(kernel, 3, cl.CL_size_t(unsafe.Sizeof(res_buff)), unsafe.Pointer(&res_buff))
 
 		// queue
 		queue := cl.CLCreateCommandQueue(ctx, v.dev[0], 0, &err)
@@ -107,22 +125,23 @@ func RunProgram(p *Program, datasz int) bool {
 
 		// var work_unit_per_kernel = [1]cl.CL_size_t{cl.CL_size_t(WORK_UNIT_SZ)}
 		// res is 64 length
-		dim := cl.CL_uint(2)
-		var global_offset = [...]cl.CL_size_t{3, 5}
-		var global_size = [...]cl.CL_size_t{6, 4} // should go to size of res?!
-		var local_size = [...]cl.CL_size_t{3, 2}
-		err = cl.CLEnqueueNDRangeKernel(queue, kernel, dim, global_offset[:], global_size[:], local_size[:], 0, nil, nil)
+		dim := cl.CL_uint(1)
+		var global_size = [...]cl.CL_size_t{cl.CL_size_t(wunit * WORK_UNIT_SZ)} // total number of workitems product >= len(inp)
+		var local_size = [...]cl.CL_size_t{cl.CL_size_t(wunit)}                 // for two dimm its half of first dimm!!!
+		err = cl.CLEnqueueNDRangeKernel(queue, kernel, dim, nil, global_size[:], local_size[:], 0, nil, nil)
 		if assert(err, "Cannot create kernel queue") {
 			return false
 		}
-		cl.CLEnqueueReadBuffer(queue, res_buff, cl.CL_TRUE, 0, cl.CL_size_t(unsafe.Sizeof(res)), unsafe.Pointer(&res[0]), 0, nil, nil)
+		cl.CLEnqueueReadBuffer(queue, res_buff, cl.CL_TRUE, 0, cl.CL_size_t(int(unsafe.Sizeof(res[0]))*len(res)), unsafe.Pointer(&res[0]), 0, nil, nil)
 
 		cl.CLReleaseKernel(kernel)
 		cl.CLReleaseCommandQueue(queue)
-		cl.CLReleaseMemObject(mat_buff)
+		cl.CLReleaseMemObject(matx_buff)
+		cl.CLReleaseMemObject(maty_buff)
+		cl.CLReleaseMemObject(matz_buff)
 		cl.CLReleaseMemObject(res_buff)
 
-		fmt.Println(data)
+		fmt.Println(datax)
 		fmt.Println(res)
 
 	}
