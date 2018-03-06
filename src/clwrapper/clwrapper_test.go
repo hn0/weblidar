@@ -13,13 +13,17 @@ func TestSupport(t *testing.T) {
 
 func TestMatvec(t *testing.T) {
 
-	var data [16]float32
-	for i := 0; i < 16; i++ {
-		data[i] = float32(i)
-	}
+	// var data [16]float32
+	// for i := 0; i < 16; i++ {
+	// 	data[i] = float32(i + 2)
+	// }
 
-	p := Program{"square_test.cl", "square_test"}
-	if !RunProgram(&p, data) {
+	a := func(i int) float32 {
+		return float32(i + 3)
+	}
+	p := Program{"square_test.cl", "square_test", a}
+
+	if !RunProgram(&p, 16) {
 		t.Error("Running matvec example failed")
 		t.Fail()
 	}

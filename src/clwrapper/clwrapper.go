@@ -4,12 +4,13 @@ import (
 	"fmt"
 	"github.com/rainliu/gocl/cl"
 	"os"
-	"unsafe"
+	_ "unsafe"
 )
 
 type Program struct {
 	Source  string
 	FncName string
+	Val     func(int) float32
 }
 
 type cldev struct {
@@ -19,83 +20,90 @@ type cldev struct {
 
 var v *cldev
 
-func RunProgram(p *Program, data [16]float32) bool {
+func RunProgram(p *Program, datasz int) bool {
 
 	if v.numdev < 1 {
 		fmt.Println("Cannot run cl program without any device")
 		return false
 	}
 
-	var err cl.CL_int
-	ctx := cl.CLCreateContext(nil, 1, v.dev, nil, nil, &err)
-	if assert(err, "Cannot create ctx") {
-		return false
+	data := make([]float32, datasz)
+	for i := 0; i < datasz; i++ {
+		data[i] = p.Val(i)
 	}
-	defer cl.CLReleaseContext(ctx)
 
-	psz, pbuff := read_program(p.Source)
-	if psz[0] > 0 {
-		program := cl.CLCreateProgramWithSource(ctx, 1, pbuff[:], psz[:], &err)
-		if assert(err, "Cannot create program from source") {
-			return false
-		}
-		defer cl.CLReleaseProgram(program)
+	fmt.Println(data)
 
-		// build program
-		err = cl.CLBuildProgram(program, 1, v.dev[:], nil, nil, nil)
-		if assert(err, "Cannot build the program") {
-			var log_size cl.CL_size_t
-			var err_msg interface{}
-			cl.CLGetProgramBuildInfo(program, v.dev[0], cl.CL_PROGRAM_BUILD_LOG, 0, nil, &log_size)
-			cl.CLGetProgramBuildInfo(program, v.dev[0], cl.CL_PROGRAM_BUILD_LOG, log_size, &err_msg, nil)
-			fmt.Printf("\tfail msg:\n%s\n", err_msg)
-			return false
-		}
+	// var err cl.CL_int
+	// ctx := cl.CLCreateContext(nil, 1, v.dev, nil, nil, &err)
+	// if assert(err, "Cannot create ctx") {
+	// 	return false
+	// }
+	// defer cl.CLReleaseContext(ctx)
 
-		var mat_buff, res_buff cl.CL_mem
-		mat_buff = cl.CLCreateBuffer(ctx, cl.CL_MEM_READ_ONLY|cl.CL_MEM_COPY_HOST_PTR,
-			cl.CL_size_t(unsafe.Sizeof(data)), unsafe.Pointer(&data[0]), &err)
-		if assert(err, "Cannot create input buffer") {
-			return false
-		}
-		var res [16]float32
-		res_buff = cl.CLCreateBuffer(ctx, cl.CL_MEM_WRITE_ONLY, cl.CL_size_t(unsafe.Sizeof(res)), nil, nil)
+	// psz, pbuff := read_program(p.Source)
+	// if psz[0] > 0 {
+	// 	program := cl.CLCreateProgramWithSource(ctx, 1, pbuff[:], psz[:], &err)
+	// 	if assert(err, "Cannot create program from source") {
+	// 		return false
+	// 	}
+	// 	defer cl.CLReleaseProgram(program)
 
-		// returns -45
-		kernel := cl.CLCreateKernel(program, []byte(p.FncName), &err)
-		if assert(err, "Cannot create kernel") {
-			return false
-		}
-		defer cl.CLReleaseKernel(kernel)
+	// 	// build program
+	// 	err = cl.CLBuildProgram(program, 1, v.dev[:], nil, nil, nil)
+	// 	if assert(err, "Cannot build the program") {
+	// 		var log_size cl.CL_size_t
+	// 		var err_msg interface{}
+	// 		cl.CLGetProgramBuildInfo(program, v.dev[0], cl.CL_PROGRAM_BUILD_LOG, 0, nil, &log_size)
+	// 		cl.CLGetProgramBuildInfo(program, v.dev[0], cl.CL_PROGRAM_BUILD_LOG, log_size, &err_msg, nil)
+	// 		fmt.Printf("\tfail msg:\n%s\n", err_msg)
+	// 		return false
+	// 	}
 
-		err = cl.CLSetKernelArg(kernel, 0, cl.CL_size_t(unsafe.Sizeof(mat_buff)), unsafe.Pointer(&mat_buff))
-		if assert(err, "Cannot set kernel args") {
-			return false
-		}
-		cl.CLSetKernelArg(kernel, 1, cl.CL_size_t(unsafe.Sizeof(res_buff)), unsafe.Pointer(&res_buff))
+	// 	var mat_buff, res_buff cl.CL_mem
+	// 	mat_buff = cl.CLCreateBuffer(ctx, cl.CL_MEM_READ_ONLY|cl.CL_MEM_COPY_HOST_PTR,
+	// 		cl.CL_size_t(unsafe.Sizeof(data)), unsafe.Pointer(&data[0]), &err)
+	// 	if assert(err, "Cannot create input buffer") {
+	// 		return false
+	// 	}
+	// 	var res [16]float32
+	// 	res_buff = cl.CLCreateBuffer(ctx, cl.CL_MEM_WRITE_ONLY, cl.CL_size_t(unsafe.Sizeof(res)), nil, nil)
 
-		// queue
-		queue := cl.CLCreateCommandQueue(ctx, v.dev[0], 0, &err)
-		if assert(err, "Failed at creating queue") {
-			return false
-		}
+	// 	// returns -45
+	// 	kernel := cl.CLCreateKernel(program, []byte(p.FncName), &err)
+	// 	if assert(err, "Cannot create kernel") {
+	// 		return false
+	// 	}
+	// 	defer cl.CLReleaseKernel(kernel)
 
-		var work_unit_per_kernel = [2]cl.CL_size_t{8} // split!?
-		err = cl.CLEnqueueNDRangeKernel(queue, kernel, 1, nil, work_unit_per_kernel[:], nil, 0, nil, nil)
-		if assert(err, "cannot create kernel queue") {
-			return false
-		}
-		cl.CLEnqueueReadBuffer(queue, res_buff, cl.CL_TRUE, 0, cl.CL_size_t(unsafe.Sizeof(res)), unsafe.Pointer(&res[0]), 0, nil, nil)
+	// 	err = cl.CLSetKernelArg(kernel, 0, cl.CL_size_t(unsafe.Sizeof(mat_buff)), unsafe.Pointer(&mat_buff))
+	// 	if assert(err, "Cannot set kernel args") {
+	// 		return false
+	// 	}
+	// 	cl.CLSetKernelArg(kernel, 1, cl.CL_size_t(unsafe.Sizeof(res_buff)), unsafe.Pointer(&res_buff))
 
-		cl.CLReleaseKernel(kernel)
-		cl.CLReleaseCommandQueue(queue)
-		cl.CLReleaseMemObject(mat_buff)
-		cl.CLReleaseMemObject(res_buff)
+	// 	// queue
+	// 	queue := cl.CLCreateCommandQueue(ctx, v.dev[0], 0, &err)
+	// 	if assert(err, "Failed at creating queue") {
+	// 		return false
+	// 	}
 
-		fmt.Println(data)
-		fmt.Println(res)
+	// 	var work_unit_per_kernel = [2]cl.CL_size_t{8} // split!?
+	// 	err = cl.CLEnqueueNDRangeKernel(queue, kernel, 1, nil, work_unit_per_kernel[:], nil, 0, nil, nil)
+	// 	if assert(err, "cannot create kernel queue") {
+	// 		return false
+	// 	}
+	// 	cl.CLEnqueueReadBuffer(queue, res_buff, cl.CL_TRUE, 0, cl.CL_size_t(unsafe.Sizeof(res)), unsafe.Pointer(&res[0]), 0, nil, nil)
 
-	}
+	// 	cl.CLReleaseKernel(kernel)
+	// 	cl.CLReleaseCommandQueue(queue)
+	// 	cl.CLReleaseMemObject(mat_buff)
+	// 	cl.CLReleaseMemObject(res_buff)
+
+	// 	fmt.Println(data)
+	// 	fmt.Println(res)
+
+	// }
 	return false
 }
 
