@@ -19,20 +19,37 @@ type cldev struct {
 }
 
 var v *cldev
+var WORK_UNIT_SZ int = 32
 
 func RunProgram(p *Program, datasz int) bool {
 
-	if v.numdev < 1 {
-		fmt.Println("Cannot run cl program without any device")
+	// basic set of checks
+	var chk string
+	switch {
+	case v.numdev < 1:
+		chk = "Cannot run cl program without any device"
+	case datasz < WORK_UNIT_SZ:
+		chk = "Data size cannot be smaller than work unit size"
+	}
+
+	if len(chk) > 0 {
+		fmt.Println(chk)
 		return false
 	}
 
-	data := make([]float32, datasz)
+	wunit := datasz / WORK_UNIT_SZ
+	if datasz%WORK_UNIT_SZ != 0 {
+		wunit++
+	}
+	data := make([]float32, wunit*WORK_UNIT_SZ)
 	for i := 0; i < datasz; i++ {
 		data[i] = p.Val(i)
 	}
+	for i := datasz - 1; i < wunit*WORK_UNIT_SZ; i++ {
+		data[i] = 0
+	}
 
-	fmt.Println(data)
+	fmt.Println(data, len(data))
 
 	// var err cl.CL_int
 	// ctx := cl.CLCreateContext(nil, 1, v.dev, nil, nil, &err)

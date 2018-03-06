@@ -19,11 +19,11 @@ func TestMatvec(t *testing.T) {
 	// }
 
 	a := func(i int) float32 {
-		return float32(i + 3)
+		return float32(i)
 	}
 	p := Program{"square_test.cl", "square_test", a}
 
-	if !RunProgram(&p, 16) {
+	if !RunProgram(&p, 59) {
 		t.Error("Running matvec example failed")
 		t.Fail()
 	}
