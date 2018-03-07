@@ -20,7 +20,7 @@ func TestMatvec(t *testing.T) {
 	p := Program{"euclid_dist.cl", "euclid_dist", valfnc}
 
 	// this is weird but why invalid work item error is thrown (8192 is max sz, yep limitation of gpu! 256 * worksizeitem!)
-	if !RunProgram(&p, 32) {
+	if !RunProgram(&p, 8193) {
 		t.Error("Running matvec example failed")
 		t.Fail()
 	}

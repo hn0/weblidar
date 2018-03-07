@@ -3,6 +3,7 @@ package clwrapper
 import (
 	"fmt"
 	"github.com/rainliu/gocl/cl"
+	"math"
 	"os"
 	"unsafe"
 )
@@ -20,6 +21,7 @@ type cldev struct {
 
 var v *cldev
 var WORK_UNIT_SZ int = 16
+var MAX_UNIT_SZ int = 32
 
 func RunProgram(p *Program, datasz int) bool {
 
@@ -38,6 +40,12 @@ func RunProgram(p *Program, datasz int) bool {
 	}
 
 	wunit := datasz / WORK_UNIT_SZ
+
+	if wunit > MAX_UNIT_SZ {
+		WORK_UNIT_SZ = int(math.Ceil(float64(datasz) / float64(MAX_UNIT_SZ)))
+		wunit = datasz / WORK_UNIT_SZ
+	}
+
 	if datasz%WORK_UNIT_SZ != 0 {
 		wunit++
 	}
@@ -198,9 +206,13 @@ func HasSupport() bool {
 					var info interface{}
 					if err := cl.CLGetDeviceInfo(devices[0], cl.CL_DEVICE_NAME, paramValueSize, &info, nil); err == cl.CL_SUCCESS {
 						name = info.(string)
+						var wi_sizes interface{}
+						cl.CLGetDeviceInfo(devices[0], cl.CL_DEVICE_MAX_WORK_ITEM_SIZES, paramValueSize, &wi_sizes, nil)
+						MAX_UNIT_SZ = int(wi_sizes.([]cl.CL_size_t)[0])
 					}
 				}
 				fmt.Printf("Found %d open cl platforms, using first one: %s\n", numPlatforms, name)
+
 				// v.plat = plids[0]
 				v.dev = devices
 				v.numdev = len(devices)
