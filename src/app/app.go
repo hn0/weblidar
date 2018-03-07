@@ -36,7 +36,7 @@ func main() {
 	// TODO: check the structure of the file, in new class
 	//  and build structure for ....
 	m := model.CreateModel(os.Args[1])
-	fmt.Println(m)
+	fmt.Println(m.Valid)
 
 	fmt.Println("Starting web server on port", PORT)
 
