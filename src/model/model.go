@@ -60,9 +60,6 @@ func CreateModel(path string) *Model {
 				x = float32(x1 / domains["X"][1])
 				y = float32(y1 / domains["Y"][1])
 				z = float32(z1 / domains["Z"][1])
-				m.Pts[i].x = x
-				m.Pts[i].y = y
-				m.Pts[i].z = z
 			} else {
 				valid = false
 			}
@@ -71,8 +68,17 @@ func CreateModel(path string) *Model {
 			}
 			return x, y, z
 		}
+
+		resfnc := func(i int, xyz [3]float32, dist [2]float32) {
+			m.Pts[i].x = xyz[0]
+			m.Pts[i].y = xyz[1]
+			m.Pts[i].z = xyz[2]
+			// order of reading is not the best, categorization is next
+			fmt.Println(i, xyz, dist)
+		}
+
 		// TODO: relative path?!
-		p := clwrapper.Program{"src/clwrapper/euclid_dist.cl", "euclid_dist", valfnc}
+		p := clwrapper.Program{"src/clwrapper/euclid_dist.cl", "euclid_dist", valfnc, resfnc}
 		valid = valid && clwrapper.RunProgram(&p, 32)
 
 		fmt.Printf("\r\tdone \n")

@@ -12,6 +12,7 @@ type Program struct {
 	Source  string
 	FncName string
 	Val     func(int) (float32, float32, float32)
+	Res     func(int, [3]float32, [2]float32)
 }
 
 type cldev struct {
@@ -55,14 +56,11 @@ func RunProgram(p *Program, datasz int) bool {
 	dist := make([]float32, wunit*WORK_UNIT_SZ)
 	angl := make([]float32, wunit*WORK_UNIT_SZ)
 
-	// var data [64]float32
-	// var dist [64]float32
-
 	for i := 0; i < datasz; i++ {
 		datax[i], datay[i], dataz[i] = p.Val(i)
 		// dist[i] = 1
 	}
-	for i := datasz - 1; i < wunit*WORK_UNIT_SZ; i++ {
+	for i := datasz; i < wunit*WORK_UNIT_SZ; i++ {
 		datax[i] = 0
 		datay[i] = 0
 		dataz[i] = 0
@@ -145,7 +143,7 @@ func RunProgram(p *Program, datasz int) bool {
 			return false
 		}
 		cl.CLEnqueueReadBuffer(queue, dist_buff, cl.CL_TRUE, 0, cl.CL_size_t(int(unsafe.Sizeof(dist[0]))*len(dist)), unsafe.Pointer(&dist[0]), 0, nil, nil)
-		cl.CLEnqueueReadBuffer(queue, angle_buff, cl.CL_TRUE, 1, cl.CL_size_t(int(unsafe.Sizeof(angl[0]))*len(angl)), unsafe.Pointer(&angl[0]), 0, nil, nil)
+		cl.CLEnqueueReadBuffer(queue, angle_buff, cl.CL_TRUE, 0, cl.CL_size_t(int(unsafe.Sizeof(angl[0]))*len(angl)), unsafe.Pointer(&angl[0]), 0, nil, nil)
 
 		cl.CLReleaseKernel(kernel)
 		cl.CLReleaseCommandQueue(queue)
@@ -154,10 +152,13 @@ func RunProgram(p *Program, datasz int) bool {
 		cl.CLReleaseMemObject(matz_buff)
 		cl.CLReleaseMemObject(dist_buff)
 
-		fmt.Println(datax)
-		fmt.Println(dist)
-		fmt.Println(angl)
-
+		for i := 0; i < datasz; i++ {
+			// datax[i], datay[i], dataz[i] = p.Val(i)
+			p.Res(i,
+				[3]float32{datax[i], datay[i], dataz[i]},
+				[2]float32{dist[i], angl[i]})
+		}
+		return true
 	}
 	return false
 }

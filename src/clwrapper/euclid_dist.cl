@@ -21,7 +21,6 @@ __kernel void euclid_dist(__global float* inx,
         // As of start, a crude catergorisation of the points is needed!
         //  having only magnitude and angle in respect to z axis should be enough to perform the tests
         dist[i] = distance( origin, (float3)( inx[i], iny[i], inz[i]) );
-        // angle[i] = dot( zaxis, (float3)( inx[i], iny[i], inz[i]) );
-        angle[i] = 10;
+        angle[i] = dot( zaxis, (float3)( inx[i], iny[i], inz[i]) );
     }
 }
