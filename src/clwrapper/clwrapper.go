@@ -20,7 +20,7 @@ type cldev struct {
 }
 
 var v *cldev
-var WORK_UNIT_SZ int = 16
+var WORK_UNIT_SZ int = 8
 var MAX_UNIT_SZ int = 32
 
 func RunProgram(p *Program, datasz int) bool {
@@ -52,20 +52,21 @@ func RunProgram(p *Program, datasz int) bool {
 	datax := make([]float32, wunit*WORK_UNIT_SZ)
 	datay := make([]float32, wunit*WORK_UNIT_SZ)
 	dataz := make([]float32, wunit*WORK_UNIT_SZ)
-	res := make([]float32, wunit*WORK_UNIT_SZ)
+	dist := make([]float32, wunit*WORK_UNIT_SZ)
+	angl := make([]float32, wunit*WORK_UNIT_SZ)
 
 	// var data [64]float32
-	// var res [64]float32
+	// var dist [64]float32
 
 	for i := 0; i < datasz; i++ {
 		datax[i], datay[i], dataz[i] = p.Val(i)
-		// res[i] = 1
+		// dist[i] = 1
 	}
 	for i := datasz - 1; i < wunit*WORK_UNIT_SZ; i++ {
 		datax[i] = 0
 		datay[i] = 0
 		dataz[i] = 0
-		// res[i] = 1
+		// dist[i] = 1
 	}
 
 	var err cl.CL_int
@@ -94,7 +95,7 @@ func RunProgram(p *Program, datasz int) bool {
 			return false
 		}
 
-		var matx_buff, maty_buff, matz_buff, res_buff cl.CL_mem
+		var matx_buff, maty_buff, matz_buff, dist_buff, angle_buff cl.CL_mem
 		matx_buff = cl.CLCreateBuffer(ctx, cl.CL_MEM_READ_ONLY|cl.CL_MEM_COPY_HOST_PTR,
 			cl.CL_size_t(int(unsafe.Sizeof(datax[0]))*len(datax)), unsafe.Pointer(&datax[0]), &err)
 		if assert(err, "Cannot create input buffer") {
@@ -104,7 +105,11 @@ func RunProgram(p *Program, datasz int) bool {
 			cl.CL_size_t(int(unsafe.Sizeof(datax[0]))*len(datax)), unsafe.Pointer(&datay[0]), nil)
 		matz_buff = cl.CLCreateBuffer(ctx, cl.CL_MEM_READ_ONLY|cl.CL_MEM_COPY_HOST_PTR,
 			cl.CL_size_t(int(unsafe.Sizeof(datax[0]))*len(datax)), unsafe.Pointer(&dataz[0]), &err)
-		res_buff = cl.CLCreateBuffer(ctx, cl.CL_MEM_WRITE_ONLY, cl.CL_size_t(int(unsafe.Sizeof(res[0]))*len(res)), nil, &err)
+		dist_buff = cl.CLCreateBuffer(ctx, cl.CL_MEM_WRITE_ONLY, cl.CL_size_t(int(unsafe.Sizeof(dist[0]))*len(dist)), nil, &err)
+		if assert(err, "Cannot create output buffer") {
+			return false
+		}
+		angle_buff = cl.CLCreateBuffer(ctx, cl.CL_MEM_WRITE_ONLY, cl.CL_size_t(int(unsafe.Sizeof(angl[0]))*len(angl)), nil, &err)
 		if assert(err, "Cannot create output buffer") {
 			return false
 		}
@@ -121,7 +126,8 @@ func RunProgram(p *Program, datasz int) bool {
 		}
 		cl.CLSetKernelArg(kernel, 1, cl.CL_size_t(unsafe.Sizeof(maty_buff)), unsafe.Pointer(&maty_buff))
 		cl.CLSetKernelArg(kernel, 2, cl.CL_size_t(unsafe.Sizeof(matz_buff)), unsafe.Pointer(&matz_buff))
-		cl.CLSetKernelArg(kernel, 3, cl.CL_size_t(unsafe.Sizeof(res_buff)), unsafe.Pointer(&res_buff))
+		cl.CLSetKernelArg(kernel, 3, cl.CL_size_t(unsafe.Sizeof(dist_buff)), unsafe.Pointer(&dist_buff))
+		cl.CLSetKernelArg(kernel, 4, cl.CL_size_t(unsafe.Sizeof(angle_buff)), unsafe.Pointer(&angle_buff))
 
 		// queue
 		queue := cl.CLCreateCommandQueue(ctx, v.dev[0], 0, &err)
@@ -130,7 +136,7 @@ func RunProgram(p *Program, datasz int) bool {
 		}
 
 		// var work_unit_per_kernel = [1]cl.CL_size_t{cl.CL_size_t(WORK_UNIT_SZ)}
-		// res is 64 length
+		// dist is 64 length
 		dim := cl.CL_uint(1)
 		var global_size = [...]cl.CL_size_t{cl.CL_size_t(wunit * WORK_UNIT_SZ)} // total number of workitems product >= len(inp)
 		var local_size = [...]cl.CL_size_t{cl.CL_size_t(wunit)}                 // for two dimm its half of first dimm!!!
@@ -138,17 +144,19 @@ func RunProgram(p *Program, datasz int) bool {
 		if assert(err, "Cannot create kernel queue") {
 			return false
 		}
-		cl.CLEnqueueReadBuffer(queue, res_buff, cl.CL_TRUE, 0, cl.CL_size_t(int(unsafe.Sizeof(res[0]))*len(res)), unsafe.Pointer(&res[0]), 0, nil, nil)
+		cl.CLEnqueueReadBuffer(queue, dist_buff, cl.CL_TRUE, 0, cl.CL_size_t(int(unsafe.Sizeof(dist[0]))*len(dist)), unsafe.Pointer(&dist[0]), 0, nil, nil)
+		cl.CLEnqueueReadBuffer(queue, angle_buff, cl.CL_TRUE, 1, cl.CL_size_t(int(unsafe.Sizeof(angl[0]))*len(angl)), unsafe.Pointer(&angl[0]), 0, nil, nil)
 
 		cl.CLReleaseKernel(kernel)
 		cl.CLReleaseCommandQueue(queue)
 		cl.CLReleaseMemObject(matx_buff)
 		cl.CLReleaseMemObject(maty_buff)
 		cl.CLReleaseMemObject(matz_buff)
-		cl.CLReleaseMemObject(res_buff)
+		cl.CLReleaseMemObject(dist_buff)
 
 		fmt.Println(datax)
-		fmt.Println(res)
+		fmt.Println(dist)
+		fmt.Println(angl)
 
 	}
 	return false

@@ -15,12 +15,12 @@ func TestMatvec(t *testing.T) {
 
 	valfnc := func(i int) (float32, float32, float32) {
 		ret := float32(i)
-		return ret, ret - 2, ret - 3
+		return ret, ret, ret
 	}
 	p := Program{"euclid_dist.cl", "euclid_dist", valfnc}
 
 	// this is weird but why invalid work item error is thrown (8192 is max sz, yep limitation of gpu! 256 * worksizeitem!)
-	if !RunProgram(&p, 8193) {
+	if !RunProgram(&p, 14) {
 		t.Error("Running matvec example failed")
 		t.Fail()
 	}
