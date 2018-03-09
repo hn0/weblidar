@@ -1,12 +1,15 @@
 
 var app = function() {
+    this.stream = new Stream();
 	this.load_url( 'info' )
-	    .then(function(data){
-	    	var c = new LidarCanvas( this );
-	    })
-	    .catch( function(){
-	    	console.warn( 'Application unable to start, cannot load the data' );
-	    });
+	    .then(
+            function(data){
+                console.log( 'got the data', data );
+	    	    var c = new LidarCanvas( this, data );
+        }.bind( this ),
+            function(){
+            	console.warn( 'Application unable to start, cannot load the data' );
+        });
 };
 
 app.prototype.load_url = function(url, method, data) {
@@ -20,10 +23,10 @@ app.prototype.load_url = function(url, method, data) {
 		var xhr = new XMLHttpRequest();
 		xhr.open( method, url );
 		xhr.onload = function(){
-			resolve( xhr.responseText );
-		};
+            resolve( xhr.responseText );
+        };
 
-		xhr.onerror = function() {
+        xhr.onerror = function() {
 			reject();
 		}
 
