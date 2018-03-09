@@ -22,7 +22,7 @@ type cldev struct {
 
 var v *cldev
 var WORK_UNIT_SZ int = 8
-var MAX_UNIT_SZ int = 32
+var MAX_UNIT_SZ int  = 1024
 
 func RunProgram(p *Program, datasz int) bool {
 
@@ -145,7 +145,7 @@ func RunProgram(p *Program, datasz int) bool {
 		cl.CLEnqueueReadBuffer(queue, dist_buff, cl.CL_TRUE, 0, cl.CL_size_t(int(unsafe.Sizeof(dist[0]))*len(dist)), unsafe.Pointer(&dist[0]), 0, nil, nil)
 		cl.CLEnqueueReadBuffer(queue, angle_buff, cl.CL_TRUE, 0, cl.CL_size_t(int(unsafe.Sizeof(angl[0]))*len(angl)), unsafe.Pointer(&angl[0]), 0, nil, nil)
 
-		cl.CLReleaseKernel(kernel)
+		// cl.CLReleaseKernel(kernel)
 		cl.CLReleaseCommandQueue(queue)
 		cl.CLReleaseMemObject(matx_buff)
 		cl.CLReleaseMemObject(maty_buff)
@@ -203,26 +203,24 @@ func HasSupport() bool {
 	errNum = cl.CLGetPlatformIDs(0, nil, &numPlatforms)
 	if errNum == cl.CL_SUCCESS && numPlatforms > 0 {
 
-		plids := make([]cl.CL_platform_id, numPlatforms)
-		if err := cl.CLGetPlatformIDs(1, plids, nil); err == cl.CL_SUCCESS && len(plids) > 0 {
-			// access the device!
-			devices := make([]cl.CL_device_id, 1)
-			if err := cl.CLGetDeviceIDs(plids[0], cl.CL_DEVICE_TYPE_GPU, 1, devices, nil); err == cl.CL_SUCCESS && len(devices) > 0 {
-				// name of device!
-				var name string
-				var paramValueSize cl.CL_size_t
-				if err := cl.CLGetDeviceInfo(devices[0], cl.CL_DEVICE_NAME, 0, nil, &paramValueSize); err == cl.CL_SUCCESS {
-					var info interface{}
-					if err := cl.CLGetDeviceInfo(devices[0], cl.CL_DEVICE_NAME, paramValueSize, &info, nil); err == cl.CL_SUCCESS {
-						name = info.(string)
-						var wi_sizes interface{}
-						cl.CLGetDeviceInfo(devices[0], cl.CL_DEVICE_MAX_WORK_ITEM_SIZES, paramValueSize, &wi_sizes, nil)
+		if tst, devices := get_frist_device(numPlatforms); tst > 0{
+			// name of device!
+			var name string
+			var paramValueSize cl.CL_size_t
+			if err := cl.CLGetDeviceInfo(devices[0], cl.CL_DEVICE_NAME, 0, nil, &paramValueSize); err == cl.CL_SUCCESS {
+				var info interface{}
+				if err := cl.CLGetDeviceInfo(devices[0], cl.CL_DEVICE_NAME, paramValueSize, &info, nil); err == cl.CL_SUCCESS {
+					name = info.(string)
+					var wi_sizes interface{}
+					cl.CLGetDeviceInfo(devices[0], cl.CL_DEVICE_MAX_WORK_ITEM_SIZES, paramValueSize, &wi_sizes, nil)
+
+					if sz := int(wi_sizes.([]cl.CL_size_t)[0]); sz > 0{
 						MAX_UNIT_SZ = int(wi_sizes.([]cl.CL_size_t)[0])
 					}
 				}
-				fmt.Printf("Found %d open cl platforms, using first one: %s\n", numPlatforms, name)
 
-				// v.plat = plids[0]
+				fmt.Printf("Found %d open cl platforms, using first one avaiable: %s\n", numPlatforms, name)
+
 				v.dev = devices
 				v.numdev = len(devices)
 				return true
@@ -231,4 +229,18 @@ func HasSupport() bool {
 	}
 
 	return false
+}
+
+func get_frist_device(num cl.CL_uint) (int, []cl.CL_device_id) {
+
+	devices := make([]cl.CL_device_id, 1)
+	plids := make([]cl.CL_platform_id, num)
+	if err := cl.CLGetPlatformIDs(num, plids, nil); err == cl.CL_SUCCESS && len(plids) > 0 {
+		for i := 0; i < len(plids); i++ {
+			if err = cl.CLGetDeviceIDs( plids[i], cl.CL_DEVICE_TYPE_GPU, 1, devices, nil ); err == cl.CL_SUCCESS {
+				return 1, devices
+			}
+		}
+	}
+	return 0, devices
 }
