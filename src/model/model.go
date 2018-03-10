@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/jblindsay/lidario"
 	"reflect"
+	"time"
 )
 
 type point struct {
@@ -48,6 +49,7 @@ func CreateModel(path string) *Model {
 		}
 
 		// read and normalize all the points
+		var start time.Time
 		m.Pts = make([]point, m.Numpts)
 		valid := true
 
@@ -63,7 +65,11 @@ func CreateModel(path string) *Model {
 			} else {
 				valid = false
 			}
-			if i%500 == 0 {
+			if i == m.Numpts - 1 {
+				fmt.Printf( "\r\t 100%% Done.\n" );
+				fmt.Println( "Processing the data ..." );
+				start = time.Now()
+			} else if i%500 == 0 {
 				fmt.Printf("\r\t %f%%", (float64(i)/float64(m.Numpts))*100)
 			}
 			return x, y, z
@@ -74,14 +80,21 @@ func CreateModel(path string) *Model {
 			m.Pts[i].y = xyz[1]
 			m.Pts[i].z = xyz[2]
 			// order of reading is not the best, categorization is next
-			fmt.Println(i, xyz, dist)
+			// fmt.Println(i, xyz, dist)
+			if i == 1 {
+				fmt.Printf( "\rDone. Processing took: %s\n", time.Since(start) )
+				fmt.Println( "Reading results" )
+			} else if i == m.Numpts - 1{
+				fmt.Printf( "\r\t 100%% Done.\n" );
+			} else if i % 500 == 0 {
+				fmt.Printf("\r\t %f%%", (float64(i)/float64(m.Numpts))*100)
+			}
 		}
 
 		// TODO: relative path?!
 		p := clwrapper.Program{"src/clwrapper/euclid_dist.cl", "euclid_dist", valfnc, resfnc}
-		valid = valid && clwrapper.RunProgram(&p, 32)
-
-		fmt.Printf("\r\tdone \n")
+		// valid = valid && clwrapper.RunProgram(&p, 32)
+		valid = valid && clwrapper.RunProgram(&p, m.Numpts)
 
 		if valid {
 			m.Valid = true
