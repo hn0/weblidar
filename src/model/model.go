@@ -32,6 +32,7 @@ func CreateModel(path string) *Model {
 	defer lf.Close()
 
 	m.Numpts = lf.Header.NumberPoints
+	m.Numpts = 23
 	if m.Numpts > 0 {
 		fmt.Printf("Processing input dataset containing %d points\n", m.Numpts)
 
@@ -93,8 +94,7 @@ func CreateModel(path string) *Model {
 
 		// TODO: relative path?!
 		p := clwrapper.Program{"src/clwrapper/euclid_dist.cl", "euclid_dist", valfnc, resfnc}
-		valid = valid && clwrapper.RunProgram(&p, 32)
-		// valid = valid && clwrapper.RunProgram(&p, m.Numpts)
+		valid = valid && clwrapper.RunProgram(&p, m.Numpts)
 
 		if valid {
 			m.Valid = true
@@ -129,4 +129,8 @@ func (m *Model) calculate_dist() {
 	// fmt.Println(r)
 	// TODO n by n matrix, maybe even using opencl
 	// calculate simple euclidian distances!
+}
+
+func (p *point) GetX() float32 {
+	return p.x
 }

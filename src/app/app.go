@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"math"
 	"model"
 	"net/http"
 	"os"
@@ -12,6 +13,7 @@ import (
 )
 
 var PORT int = 3000
+var CLIENT_BUFFER = 5
 var m *model.Model
 
 func InfoHandeler(w http.ResponseWriter, r *http.Request) {
@@ -30,16 +32,38 @@ func InfoHandeler(w http.ResponseWriter, r *http.Request) {
 
 func DataHandeler(w http.ResponseWriter, r *http.Request) {
 
+	//start point
+	start := 0
+	if keys := r.URL.Query(); len(keys) > 0 {
+		if val, exists := keys["itter"]; exists {
+			if v, err := strconv.Atoi(val[0]); err == nil {
+				start = CLIENT_BUFFER * v
+			}
+		}
+	}
+	end := start + CLIENT_BUFFER
+	if end > m.Numpts {
+		end = m.Numpts
+	}
+	// have an issue with this part!
+	sz := end - start
+
+	fmt.Println(sz)
+
 	var data []byte
 	// lets define first byte length of folloup points
-	data = make([]byte, 4)
-	binary.PutVarint(data, 415)
+	data = make([]byte, 4*(sz+1))
+	binary.LittleEndian.PutUint32(data[0:4], uint32(sz))
+	for i := 0; i < sz; i++ {
+		off := i * 4
+		binary.LittleEndian.PutUint32(data[off+4:off+8], math.Float32bits(m.Pts[start+i].GetX()))
+		fmt.Println(m.Pts[i].GetX())
+	}
 
 	set_resp_headers(w)
 	w.Header().Set("Content-Type", "application/octet-stream")
 	w.Header().Set("Content-Length", strconv.Itoa(len(data)))
 	binary.Write(w, binary.LittleEndian, data)
-
 }
 
 func set_resp_headers(w http.ResponseWriter) {
