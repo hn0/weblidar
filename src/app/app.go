@@ -2,11 +2,13 @@ package main
 
 import (
 	"clwrapper"
+	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"model"
 	"net/http"
 	"os"
+	"strconv"
 )
 
 var PORT int = 3000
@@ -24,6 +26,20 @@ func InfoHandeler(w http.ResponseWriter, r *http.Request) {
 		resp.PointCnt = len(m.Pts)
 	}
 	close_request_json(resp, w)
+}
+
+func DataHandeler(w http.ResponseWriter, r *http.Request) {
+
+	var data []byte
+	// lets define first byte length of folloup points
+	data = make([]byte, 4)
+	binary.PutVarint(data, 415)
+
+	set_resp_headers(w)
+	w.Header().Set("Content-Type", "application/octet-stream")
+	w.Header().Set("Content-Length", strconv.Itoa(len(data)))
+	binary.Write(w, binary.LittleEndian, data)
+
 }
 
 func set_resp_headers(w http.ResponseWriter) {
@@ -64,6 +80,7 @@ func main() {
 
 	fmt.Println("Starting web server on port", PORT)
 	http.HandleFunc("/info", InfoHandeler)
+	http.HandleFunc("/points/", DataHandeler)
 	http.Handle("/", http.FileServer(http.Dir("./static")))
 	fmt.Println(http.ListenAndServe(fmt.Sprintf(":%d", PORT), nil))
 }

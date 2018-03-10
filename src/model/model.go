@@ -65,9 +65,9 @@ func CreateModel(path string) *Model {
 			} else {
 				valid = false
 			}
-			if i == m.Numpts - 1 {
-				fmt.Printf( "\r\t 100%% Done.\n" );
-				fmt.Println( "Processing the data ..." );
+			if i == m.Numpts-1 {
+				fmt.Printf("\r\t 100%% Done.\n")
+				fmt.Println("Processing the data ...")
 				start = time.Now()
 			} else if i%500 == 0 {
 				fmt.Printf("\r\t %f%%", (float64(i)/float64(m.Numpts))*100)
@@ -82,19 +82,19 @@ func CreateModel(path string) *Model {
 			// order of reading is not the best, categorization is next
 			// fmt.Println(i, xyz, dist)
 			if i == 1 {
-				fmt.Printf( "\rDone. Processing took: %s\n", time.Since(start) )
-				fmt.Println( "Reading results" )
-			} else if i == m.Numpts - 1{
-				fmt.Printf( "\r\t 100%% Done.\n" );
-			} else if i % 500 == 0 {
+				fmt.Printf("\rDone. Processing took: %s\n", time.Since(start))
+				fmt.Println("Reading results")
+			} else if i == m.Numpts-1 {
+				fmt.Printf("\r\t 100%% Done.\n")
+			} else if i%500 == 0 {
 				fmt.Printf("\r\t %f%%", (float64(i)/float64(m.Numpts))*100)
 			}
 		}
 
 		// TODO: relative path?!
 		p := clwrapper.Program{"src/clwrapper/euclid_dist.cl", "euclid_dist", valfnc, resfnc}
-		// valid = valid && clwrapper.RunProgram(&p, 32)
-		valid = valid && clwrapper.RunProgram(&p, m.Numpts)
+		valid = valid && clwrapper.RunProgram(&p, 32)
+		// valid = valid && clwrapper.RunProgram(&p, m.Numpts)
 
 		if valid {
 			m.Valid = true
