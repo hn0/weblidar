@@ -134,3 +134,11 @@ func (m *Model) calculate_dist() {
 func (p *point) GetX() float32 {
 	return p.x
 }
+
+func (p *point) GetY() float32 {
+	return p.y
+}
+
+func (p *point) GetZ() float32 {
+	return p.z
+}

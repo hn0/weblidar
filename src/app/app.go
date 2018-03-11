@@ -45,25 +45,30 @@ func DataHandeler(w http.ResponseWriter, r *http.Request) {
 	if end > m.Numpts {
 		end = m.Numpts
 	}
-	// have an issue with this part!
 	sz := end - start
-
-	fmt.Println(sz)
+	if sz < 0 {
+		sz = 0
+	}
 
 	var data []byte
 	// lets define first byte length of folloup points
-	data = make([]byte, 4*(sz+1))
+	data = make([]byte, 4+(12*sz))
 	binary.LittleEndian.PutUint32(data[0:4], uint32(sz))
 	for i := 0; i < sz; i++ {
-		off := i * 4
+		off := i * 12
 		binary.LittleEndian.PutUint32(data[off+4:off+8], math.Float32bits(m.Pts[start+i].GetX()))
-		fmt.Println(m.Pts[i].GetX())
+		binary.LittleEndian.PutUint32(data[off+8:off+12], math.Float32bits(m.Pts[start+i].GetY()))
+		binary.LittleEndian.PutUint32(data[off+12:off+16], math.Float32bits(m.Pts[start+i].GetZ()))
+
+		fmt.Println(m.Pts[i].GetX(), m.Pts[i].GetY(), m.Pts[i].GetZ())
 	}
 
 	set_resp_headers(w)
 	w.Header().Set("Content-Type", "application/octet-stream")
 	w.Header().Set("Content-Length", strconv.Itoa(len(data)))
 	binary.Write(w, binary.LittleEndian, data)
+
+	fmt.Printf("No pts: %d\n", sz)
 }
 
 func set_resp_headers(w http.ResponseWriter) {

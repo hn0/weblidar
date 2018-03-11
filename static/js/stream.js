@@ -20,18 +20,22 @@ Stream.prototype.init_stream = function(reqid)
 
 Stream.prototype.parse_response = function(data)
 {
-    if( data.byteLength > 4 ){
+    if( data.byteLength >= 4 ){
         // first byte always is length of response
         var len = new Int32Array( data.slice( 0, 4 ) );
         var pts = new Float32Array( data.slice( 4 ) );
+
+        console.log( 'Got n pts for processing:', len[0] );
+
         if( !len.length || !len[0] ){
             console.log( 'stream done' );
             return false;
         }
         
-        console.log( 'Got n pts for processing:', len[0] );
-        for( i=0; i < len[0]; i++ ){
-            console.log( 'pt', i, 'data', pts[i] )
+        for( i=0; i < len[0]; i+=3 ){
+            var pt = [pts[i], pts[i+1], pts[i+2]];
+            // console.log( 'pt', i, 'data', pt )
+            this.points.push( pt );
         }
 
         return true;
