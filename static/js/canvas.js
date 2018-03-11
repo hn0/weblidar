@@ -6,6 +6,7 @@
 function LidarCanvas(app, stream, container, info_data){
 
     this.canvas = document.createElement( 'canvas' );
+    container.appendChild( this.canvas );
 
     if( !this.init_canvas() ){
         console.warn( 'Something about missing gl canvas should be written!' );
@@ -62,8 +63,16 @@ LidarCanvas.prototype.init_buffers = function()
     gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT );
 
     // issue with mat4 is the library!
-    console.log( mat4 )
+    let mvmat = mat4.create();
+    let pmat  = mat4.create();
+    mat4.identity( mvmat ); // wth, what this means?!
+    mat4.translate( mvmat, mvmat, [0.0, 0.0, -4.0] );
+    // mat4.translate( mvmat, [-1.5, 0.0, -7.0] ); // doesn't work why!?
 
+    mat4.perspective( pmat, 45, gl.viewportWidth / gl.viewportHeight, .1, 100.0 );
+
+    gl.uniformMatrix4fv( this.shaderp.persp, false, pmat );
+    gl.uniformMatrix4fv( this.shaderp.view, false, mvmat );
 
     gl.drawArrays( gl.TRIANGLES, 0, vecPos.numItems );
 };
