@@ -58,11 +58,10 @@ func CreateModel(path string) *Model {
 		valfnc := func(i int) (float32, float32, float32) {
 			var x, y, z float32
 			if x1, y1, z1, err := lf.GetXYZ(i); err == nil {
-				// let say that domain will be 0 .. 1?
-				// SOMETHING THAT NEEDS A CHECK!
-				x = float32(x1 / domains["X"][1])
-				y = float32(y1 / domains["Y"][1])
-				z = float32(z1 / domains["Z"][1])
+				// range in webgl -1 .. 1
+				x = float32((x1/domains["X"][1])*2 - 1)
+				y = float32((y1/domains["Y"][1])*2 - 1)
+				z = float32((z1/domains["Z"][1])*2 - 1)
 			} else {
 				valid = false
 			}

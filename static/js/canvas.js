@@ -1,7 +1,4 @@
 
-// https://medium.com/social-tables-tech/hello-world-webgl-79f430446b5c
-// http://learningwebgl.com/blog/?p=28
-// https://github.com/gpjt/webgl-lessons/blob/master/example01/index.html
 
 function LidarCanvas(app, stream, container, info_data){
 
@@ -12,6 +9,10 @@ function LidarCanvas(app, stream, container, info_data){
         console.warn( 'Something about missing gl canvas should be written!' );
         return;
     }
+
+    stream.on( 'pointbatch', function(cnt){
+        console.log( 'got the pts batch', cnt, this );
+    }.bind( this ) );
 
     if( this.init_shaders() ){
         this.init_buffers();
@@ -66,15 +67,13 @@ LidarCanvas.prototype.init_buffers = function()
     let mvmat = mat4.create();
     let pmat  = mat4.create();
     mat4.identity( mvmat ); // wth, what this means?!
-    mat4.translate( mvmat, mvmat, [0.0, 0.0, -4.0] );
-    // mat4.translate( mvmat, [-1.5, 0.0, -7.0] ); // doesn't work why!?
-
+    mat4.translate( mvmat, mvmat, [0.0, 0.0, -3.5] );
     mat4.perspective( pmat, 45, gl.viewportWidth / gl.viewportHeight, .1, 100.0 );
 
     gl.uniformMatrix4fv( this.shaderp.persp, false, pmat );
     gl.uniformMatrix4fv( this.shaderp.view, false, mvmat );
 
-    gl.drawArrays( gl.TRIANGLES, 0, vecPos.numItems );
+    gl.drawArrays( gl.POINTS, 0, vecPos.numItems );
 };
 
 LidarCanvas.prototype.init_shaders = function()
