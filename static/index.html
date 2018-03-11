@@ -3,7 +3,24 @@
 <head>
     <title>Showcase web lidar</title>
 
-    <script type="text/javascript" src="js/libs/three.min.js"></script>
+
+    <script type="x-shader/x-vertex" id="shader-vertex">
+        attribute vec3 Pos;
+        uniform mat4 u_modelview;
+        uniform mat4 u_persp;
+
+        void main(void){
+            gl_Position = u_persp * u_modelview * vec4( Pos, 1.0 );
+        }
+    </script>
+
+
+    <script type="x-shader/x-fragment" id="shader-fragment">
+        void main(void){
+            gl_FragColor = vec4( .9, .3, .6, 1.0);
+        }
+    </script>
+
     <script type="text/javascript" src="js/stream.js"></script>
     <script type="text/javascript" src="js/canvas.js"></script>
     <script type="text/javascript" src="js/app.js"></script>
@@ -14,6 +31,6 @@
     </script>
 </head>
 <body>
-
+    <div id="cancontainer"></div>
 </body>
 </html>

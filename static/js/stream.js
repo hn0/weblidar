@@ -5,8 +5,12 @@ function Stream (){
     this.points  = [];
 
     this.streams = [0, 1, 2];
+};
+
+Stream.prototype.start_streaming = function()
+{
     this.streams.forEach( this.init_stream.bind( this ) );
-}
+};
 
 Stream.prototype.init_stream = function(reqid)
 {
