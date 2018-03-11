@@ -3,7 +3,6 @@
 <head>
     <title>Showcase web lidar</title>
 
-
     <script type="x-shader/x-vertex" id="shader-vertex">
         attribute vec3 Pos;
         uniform mat4 u_persp;
@@ -30,8 +29,21 @@
     		var a = new app();
     	});
     </script>
+    <link rel="stylesheet" type="text/css" href="css/style.css">
 </head>
 <body>
-    <div id="cancontainer"></div>
+    <div id="wrapper">
+        <div class="side"></div>
+        <div class="content">
+            <div id="header">
+                <div class="info"></div>
+                <div id="progress"></div>
+                <div class="info"></div>
+            </div>
+            <div id="cancontainer"></div>
+            <div class="desc"></div>
+        </div>
+        <div class="side"></div>
+    </div>
 </body>
 </html>
