@@ -1,22 +1,21 @@
 
 // https://medium.com/social-tables-tech/hello-world-webgl-79f430446b5c
 // http://learningwebgl.com/blog/?p=28
+// https://github.com/gpjt/webgl-lessons/blob/master/example01/index.html
 
 function LidarCanvas(app, stream, container, info_data){
 
     this.canvas = document.createElement( 'canvas' );
 
-    if( !this.init_canvas ){
+    if( !this.init_canvas() ){
         console.warn( 'Something about missing gl canvas should be written!' );
         return;
     }
 
     if( this.init_shaders() ){
+        this.init_buffers();
         stream.start_streaming();
     }
-
-    // app.stream.init(this);
-	console.log( 'stream should be started here!' );
 
 };
 
@@ -28,13 +27,50 @@ LidarCanvas.prototype.init_canvas = function()
         gl.viewportWidth  = this.canvas.width;
         gl.viewportHeight = this.canvas.height;
         support = true;
+
+        this.shaderp = gl.createProgram();
     }
     catch (e) {}
     return support;
 };
 
+LidarCanvas.prototype.init_buffers = function()
+{
+    let gl = this.canvas.getContext( 'webgl' );
+    this.shaderp.positionLocation = gl.getAttribLocation( this.shaderp, 'Pos' );
+    gl.enableVertexAttribArray( this.shaderp.positionLocation );
+
+    this.shaderp.persp = gl.getUniformLocation( this.shaderp, 'u_persp' );
+    this.shaderp.view  = gl.getUniformLocation( this.shaderp, 'u_modelview' );
+
+    let sample = [
+         0.0,  1.0, 0.0,
+        -1.0, -1.0, 0.0,
+         1.0, -1.0, 0.0
+    ];
+
+    let vecPos = gl.createBuffer();
+    vecPos.itemSize = 3;
+    vecPos.numItems = 3;
+    gl.bindBuffer( gl.ARRAY_BUFFER, vecPos );
+    gl.bufferData( gl.ARRAY_BUFFER, new Float32Array( sample ), gl.STATIC_DRAW );
+    gl.vertexAttribPointer( this.shaderp.positionLocation, vecPos.itemSize, gl.FLOAT, false, 0, 0 );
+
+
+    // for now draw sample image!
+    gl.viewport( 0, 0, gl.viewportWidth, gl.viewportHeight );
+    gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT );
+
+    // issue with mat4 is the library!
+    console.log( mat4 )
+
+
+    gl.drawArrays( gl.TRIANGLES, 0, vecPos.numItems );
+};
+
 LidarCanvas.prototype.init_shaders = function()
 {
+
     let gl = this.canvas.getContext( 'webgl' );
     let vertexs   = this.get_shader( 'shader-vertex', gl );
     let fragments = this.get_shader( 'shader-fragment', gl );
@@ -44,17 +80,16 @@ LidarCanvas.prototype.init_shaders = function()
         return false;
     }
 
-    let shaderp = gl.createProgram();
-    gl.attachShader( shaderp, vertexs );
-    gl.attachShader( shaderp, fragments );
-    gl.linkProgram( shaderp );
+    gl.attachShader( this.shaderp, vertexs );
+    gl.attachShader( this.shaderp, fragments );
+    gl.linkProgram( this.shaderp );
 
-    if( !gl.getProgramParameter( shaderp, gl.LINK_STATUS ) ){
+    if( !gl.getProgramParameter( this.shaderp, gl.LINK_STATUS ) ){
         console.error( 'Could not init the program!' );
         return false;
     }
 
-    gl.useProgram( shaderp );
+    gl.useProgram( this.shaderp );
     return true;
 
 };
