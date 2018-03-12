@@ -23,3 +23,23 @@ div.content canvas {
     width: 100%;
     height: 100%;
 }
+
+#header{
+    display: flex;
+    flex-direction: row;
+    height: 4em;
+    font-size: 4em;
+    text-align: center;
+}
+
+#header div.info {
+    width: 200px;
+}
+
+#header div.info span.lbl {
+    font-size: 1em;
+}
+
+#header #progress{
+    background-color: #333;
+}

@@ -1,7 +1,11 @@
 
 
-function LidarCanvas(app, stream, container, info_data){
+function LidarCanvas(stream, info){
 
+    var container = document.getElementById( 'cancontainer' );
+    if( !container ){
+        return;
+    }
     this.canvas = document.createElement( 'canvas' );
     container.appendChild( this.canvas );
 

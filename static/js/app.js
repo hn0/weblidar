@@ -1,22 +1,15 @@
 
 var app = function() {
-    var ccontainer = document.getElementById( 'cancontainer' );
-    if( ccontainer ) {
-
-        this.load_url( 'info' )
-            .then(
-                function(data){
-                    console.log( 'got the data', data );
-                    var stream = new Stream();
-    	    	    var c      = new LidarCanvas( this, stream, ccontainer, data );
-            }.bind( this ),
-                function(){
-                	console.warn( 'Application unable to start, cannot load the data' );
-            });
-    }
-    else {
-        console.warn( 'there should be an error response here!' );
-    }
+    this.load_url( 'info' )
+        .then(
+            function(data){
+                var info   = new Info( data );
+                var stream = new Stream( info );
+	    	    var c      = new LidarCanvas( stream, info );
+        }.bind( this ),
+            function(){
+            	console.warn( 'Application unable to start, cannot load the data' );
+        });
 };
 
 app.prototype.load_url = function(url, method, data) {
@@ -30,7 +23,7 @@ app.prototype.load_url = function(url, method, data) {
 		var xhr = new XMLHttpRequest();
 		xhr.open( method, url );
 		xhr.onload = function(){
-            resolve( xhr.responseText );
+            resolve( JSON.parse( xhr.responseText ) );
         };
 
         xhr.onerror = function() {

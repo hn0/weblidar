@@ -1,6 +1,5 @@
 
-
-function Stream (){
+function Stream (info){
     this.request   = 0;
     this.points    = [];
     this.listeners = {
