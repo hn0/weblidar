@@ -3,8 +3,8 @@ var app = function() {
     this.load_url( 'info' )
         .then(
             function(data){
-                var info   = new Info( data );
-                var stream = new Stream( info );
+                var stream = new Stream( data );
+                var info   = new Info( data, stream );
 	    	    var c      = new LidarCanvas( stream, info );
         }.bind( this ),
             function(){

@@ -1,36 +1,32 @@
 
 
-function Info(data) {
+function Info(data, stream) {
 
-    console.log( 'got the data', data );
+    this.totalPts  = data.PointCnt || 1;
+    this.loadedPts = 1;
+    this.progress  = document.createElement( 'canvas' );
+
+    stream.on( 'pointbatch', this.progress_tick.bind( this ) );
+    stream.on( 'done', this.end_progress.bind( this ) );
 
     let infoparts = document.getElementsByClassName( 'info' );
 
     ['No. pts', 'View center'].forEach(function(lbl, i){
         let span = document.createElement( 'span' );
         span.className = 'lbl';
-        infoparts[i].appendChild( document.createTextNode( lbl ) );
+        span.appendChild( document.createTextNode( lbl ) );
+        infoparts[i].appendChild( span );
     });
 
     // left side total number of items
     let ncnt = document.createElement( 'div' );
-    ncnt.appendChild( document.createTextNode( data.PointCnt ) );
+    ncnt.appendChild( document.createTextNode( this.totalPts ) );
     infoparts[0].appendChild( ncnt );
-
-    // right side, a good place to put viewport coordinates into!
-    // where to place datasource!
-
 
     // progress bar stuff, for now keep it simple
     let pwrapper = document.getElementById( 'progress' );
-    let progress = document.createElement( 'canvas' );
     if( pwrapper ){
-
-        let ctx = progress.getContext( '2d' );
-        ctx.fillColor = '#f04';
-        ctx.fillRect(  0, 0, 15, 15 );
-
-        pwrapper.appendChild( progress );
+        pwrapper.appendChild( this.progress );
     }
     else {
         console.warn( 'where can progress canvas alternately go?' );
@@ -39,15 +35,20 @@ function Info(data) {
 
 Info.prototype.start_progress = function()
 {
-
+    console.log( 'start drawing progress!' );
 };
 
-Info.prototype.progress_tick = function()
+Info.prototype.end_progress = function()
 {
-
+    console.log( 'end drawing progress!' );
 };
 
-Info.prototype.set_viewoport = function()
+Info.prototype.progress_tick = function(cnt)
+{
+    console.log( 'update progress tick', cnt );
+};
+
+Info.prototype.set_viewoport = function(viewport)
 {
 
 };

@@ -10,7 +10,8 @@
 div.side {
     width: 10%;
     height: 100%;
-    background-color: rgba(220, 245, 245, 1);
+    /*background-color: rgba(220, 245, 245, 1);*/
+    background-color: #f00;
 }
 
 div.content {
@@ -27,19 +28,26 @@ div.content canvas {
 #header{
     display: flex;
     flex-direction: row;
-    height: 4em;
-    font-size: 4em;
+    height: 60px;
     text-align: center;
+    background-color: #fff;
+    margin-bottom: 5px;
+    justify-content: space-between;
 }
 
 #header div.info {
     width: 200px;
+    font-size: 1.6em;
+    font-weight: bold;
+    margin-top: -10px;
 }
 
 #header div.info span.lbl {
-    font-size: 1em;
+    font-size: 0.4em;
+    font-weight: normal;
 }
 
 #header #progress{
     background-color: #333;
+    flex-grow: 2;
 }

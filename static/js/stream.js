@@ -1,9 +1,11 @@
 
 function Stream (info){
     this.request   = 0;
-    this.points    = [];
+    this.coords    = new Float32Array();
+    this.points    = 0;
     this.listeners = {
-        'pointbatch': []
+        'pointbatch': [],
+        'done':       []
     };
     this.streams = [0, 1, 2];
 };
@@ -26,7 +28,7 @@ Stream.prototype.init_stream = function(reqid)
         .then( function( data ){
             if( this.parse_response( data ) ){
                 
-                let currentlen = this.points.length;
+                let currentlen = this.points;
                 this.listeners['pointbatch'].forEach( function(callback){
                     callback.call( null, currentlen );
                 });
@@ -44,18 +46,21 @@ Stream.prototype.parse_response = function(data)
         var pts = new Float32Array( data.slice( 4 ) );
 
         // console.log( 'Got n pts for processing:', len[0] );
-
         if( !len.length || !len[0] ){
-            console.log( 'stream done' );
+            this.streams.pop();
+            if( this.streams.length == 0 ){
+                this.listeners['done'].forEach( function(callback){
+                    callback();
+                });
+            }
             return false;
         }
-        
-        for( i=0; i < len[0]; i+=3 ){
-            // this will not be needed after all!?
-            var pt = [pts[i], pts[i+1], pts[i+2]];
-            // console.log( 'pt', i, 'data', pt )
-            this.points.push( pt );
-        }
+
+        let c = new Float32Array( pts.length + this.coords.length );
+        c.set( this.coords );
+        c.set( pts, this.coords.length );
+        this.coords = c;
+        this.points += len[0];
 
         return true;
     }

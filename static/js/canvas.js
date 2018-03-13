@@ -14,13 +14,17 @@ function LidarCanvas(stream, info){
         return;
     }
 
-    stream.on( 'pointbatch', function(cnt){
-        console.log( 'got the pts batch', cnt, this );
+    stream.on( 'pointbatch', function(){
+        // this.draw_buffers( stream.coords, stream.points );
     }.bind( this ) );
 
+    stream.on( 'done', function() {
+        this.init_buffers( stream.coords, stream.points );
+    }.bind( this ));
+
     if( this.init_shaders() ){
-        this.init_buffers();
         stream.start_streaming();
+        info.start_progress();
     }
 
 };
@@ -40,8 +44,9 @@ LidarCanvas.prototype.init_canvas = function()
     return support;
 };
 
-LidarCanvas.prototype.init_buffers = function()
+LidarCanvas.prototype.init_buffers = function(pts, len)
 {
+    // ok, need to pull buffer data out!
     let gl = this.canvas.getContext( 'webgl' );
     this.shaderp.positionLocation = gl.getAttribLocation( this.shaderp, 'Pos' );
     gl.enableVertexAttribArray( this.shaderp.positionLocation );
@@ -49,25 +54,6 @@ LidarCanvas.prototype.init_buffers = function()
     this.shaderp.persp = gl.getUniformLocation( this.shaderp, 'u_persp' );
     this.shaderp.view  = gl.getUniformLocation( this.shaderp, 'u_modelview' );
 
-    let sample = [
-         0.0,  1.0, 0.0,
-        -1.0, -1.0, 0.0,
-         1.0, -1.0, 0.0
-    ];
-
-    let vecPos = gl.createBuffer();
-    vecPos.itemSize = 3;
-    vecPos.numItems = 3;
-    gl.bindBuffer( gl.ARRAY_BUFFER, vecPos );
-    gl.bufferData( gl.ARRAY_BUFFER, new Float32Array( sample ), gl.STATIC_DRAW );
-    gl.vertexAttribPointer( this.shaderp.positionLocation, vecPos.itemSize, gl.FLOAT, false, 0, 0 );
-
-
-    // for now draw sample image!
-    gl.viewport( 0, 0, gl.viewportWidth, gl.viewportHeight );
-    gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT );
-
-    // issue with mat4 is the library!
     let mvmat = mat4.create();
     let pmat  = mat4.create();
     mat4.identity( mvmat ); // wth, what this means?!
@@ -76,6 +62,25 @@ LidarCanvas.prototype.init_buffers = function()
 
     gl.uniformMatrix4fv( this.shaderp.persp, false, pmat );
     gl.uniformMatrix4fv( this.shaderp.view, false, mvmat );
+
+
+    // let sample = [
+    //      0.0,  1.0, 0.0,
+    //     -1.0, -1.0, 0.0,
+    //      1.0, -1.0, 0.0
+    // ];
+
+    let vecPos = gl.createBuffer();
+    vecPos.itemSize = 3;
+    vecPos.numItems = len;
+    gl.bindBuffer( gl.ARRAY_BUFFER, vecPos );
+    // gl.bufferData( gl.ARRAY_BUFFER, new Float32Array( sample ), gl.STATIC_DRAW );
+    gl.bufferData( gl.ARRAY_BUFFER, pts, gl.STATIC_DRAW );
+    gl.vertexAttribPointer( this.shaderp.positionLocation, vecPos.itemSize, gl.FLOAT, false, 0, 0 );
+
+    // for now draw sample image!
+    gl.viewport( 0, 0, gl.viewportWidth, gl.viewportHeight );
+    gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT );
 
     gl.drawArrays( gl.POINTS, 0, vecPos.numItems );
 };
