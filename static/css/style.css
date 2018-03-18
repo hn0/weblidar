@@ -48,6 +48,5 @@ div.content canvas {
 }
 
 #header #progress{
-    background-color: #333;
     flex-grow: 2;
 }
