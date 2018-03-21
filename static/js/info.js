@@ -9,8 +9,8 @@ function Info(data, stream) {
     this.animation = -1;
     this.bpos      = 0;
     this.stroke_widths = {
-        line:   { width: 1.5, color: '#000' },
         ready:  { width: 2,   color: '#0f0' },
+        line:   { width: 1.5, color: '#000' },
         bar:    { width: 3,   color: '#00f' }
     };
 
@@ -52,17 +52,45 @@ function Info(data, stream) {
 
 Info.prototype.draw = function()
 {
+    this.bpos += 40;
     let ctx = this.progress.getContext( '2d' );
     let w   = this.progress.width;
     let y   = this.progress.height * .5;
     let p   = this.padding + 1;
 
-
     ctx.fillStyle = '#ff0';
-    ctx.fillRect( p, y - this.stroke_max * .5, w - 2 * p, this.stroke_max );
+    // ctx.fillRect( p, y - this.stroke_max * .5, w - 2 * p, this.stroke_max );
+    ctx.clearRect( p, y - this.stroke_max, w - 2 * p, 2 * this.stroke_max );
 
     // draw line, ready & bar
+    let x = p;
+    Object.keys( this.stroke_widths ).forEach( function(k){
+        if( k != 'bar' ) return;
 
+        let len = 0;
+        switch( k ){
+            case 'line':
+                len = w - len - p;
+                break;
+            case 'ready':
+                len = (this.loadedPts / this.totalPts) * (w - p);
+                break;
+            case 'bar':
+                len = 30;
+                x = this.bpos % (w - p);
+                break;
+        }
+
+        ctx.strokeStyle = this.stroke_widths[k].color;
+        ctx.lineWidth = this.stroke_widths[k].width;
+        ctx.beginPath();
+        // ?!!!?! where is the bug?!
+        ctx.moveTo( x, y - this.stroke_widths[k].width * .5 );
+        ctx.lineTo( len, y - this.stroke_widths[k].width * .5 );
+        ctx.stroke();
+        ctx.moveTo( 0, 0 );
+        x += len;
+    }.bind( this ) );
     console.log( 'animation frame!' );
 };
 
@@ -109,6 +137,7 @@ Info.prototype.end_progress = function()
 
 Info.prototype.progress_tick = function(cnt)
 {
+    this.loadedPts = cnt;
     // console.log( 'update progress tick', cnt );
 };
 
