@@ -25,6 +25,7 @@ div.content canvas {
     height: 100%;
 }
 
+
 #header{
     display: flex;
     flex-direction: row;
@@ -49,4 +50,37 @@ div.content canvas {
 
 #header #progress{
     flex-grow: 2;
+}
+
+#infoparts {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+    width: 100%;
+}
+
+#infoparts div {
+    padding: 0px 5px;
+    width: 30%;
+}
+
+#infoparts span {
+    display: block;
+}
+
+#infoparts div span.val {
+    font-size: 1em;
+}
+
+div.label-x {
+    color: Red;
+}
+
+div.label-y {
+    color: Green;
+}
+
+div.label-z {
+    color: Blue;
 }

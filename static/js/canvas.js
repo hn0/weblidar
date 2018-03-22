@@ -2,6 +2,7 @@
 
 function LidarCanvas(stream, info){
 
+    this.info = info;
     var container = document.getElementById( 'cancontainer' );
     if( !container ){
         return;
@@ -35,15 +36,15 @@ function LidarCanvas(stream, info){
         if( evt.buttons == 1 ){
             delta = [evt.clientX, evt.clientY].map( function(v, i) { return mcords[i] - v; });
 
+            // TODO: movement scale is probably off
             setTimeout(function(){
                 delta.forEach( function(_, i){
-                    self.viewport[i] += delta[i] * .01;
+                    let dir = (i == 0) ? -1 : 1;
+                    self.viewport[i] += delta[i] * .01 * dir;
                 });
                 self.set_viewport();
                 delta = [0, 0];
-                // TODO: update viewport info!
             }, 100);
-            // console.log( delta );
         }
         mcords = [evt.clientX, evt.clientY];
     });
@@ -53,9 +54,29 @@ function LidarCanvas(stream, info){
         const dir = Math.sign( evt.deltaY );
         self.viewport[2] += .2 * dir;
         self.set_viewport();
-        // TODO: update info!
     });
 
+};
+
+LidarCanvas.prototype.set_viewport = function()
+{
+    let gl = this.canvas.getContext( 'webgl' );
+    let mvmat = mat4.create();
+    mat4.translate( mvmat, mvmat, this.viewport );
+    this.shaderp.view  = gl.getUniformLocation( this.shaderp, 'u_modelview' );
+    gl.uniformMatrix4fv( this.shaderp.view, false, mvmat );
+    this.draw();
+    this.info.set_viewoport( this.viewport );
+};
+
+LidarCanvas.prototype.draw = function()
+{
+    let gl = this.canvas.getContext( 'webgl' );
+
+    gl.viewport( 0, 0, gl.viewportWidth, gl.viewportHeight );
+    gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT );
+
+    gl.drawArrays( gl.POINTS, 0, this.vecPos.numItems );
 };
 
 LidarCanvas.prototype.init_canvas = function()
@@ -71,27 +92,6 @@ LidarCanvas.prototype.init_canvas = function()
     }
     catch (e) {}
     return support;
-};
-
-LidarCanvas.prototype.set_viewport = function()
-{
-    let gl = this.canvas.getContext( 'webgl' );
-    let mvmat = mat4.create();
-    mat4.translate( mvmat, mvmat, this.viewport );
-    this.shaderp.view  = gl.getUniformLocation( this.shaderp, 'u_modelview' );
-    gl.uniformMatrix4fv( this.shaderp.view, false, mvmat );
-    this.draw();
-};
-
-LidarCanvas.prototype.draw = function()
-{
-    let gl = this.canvas.getContext( 'webgl' );
-
-
-    gl.viewport( 0, 0, gl.viewportWidth, gl.viewportHeight );
-    gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT );
-
-    gl.drawArrays( gl.POINTS, 0, this.vecPos.numItems );
 };
 
 LidarCanvas.prototype.init_buffers = function(pts, len)
