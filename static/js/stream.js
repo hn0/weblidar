@@ -22,6 +22,11 @@ Stream.prototype.start_streaming = function()
     this.streams.forEach( this.init_stream.bind( this ) );
 };
 
+Stream.prototype.stop_streaming = function()
+{
+    console.log( 'implement stream control!' );
+};
+
 Stream.prototype.init_stream = function(reqid)
 {
     this.get( reqid )

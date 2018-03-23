@@ -7,22 +7,32 @@ function LidarCanvas(stream, info){
     if( !container ){
         return;
     }
+    this.pts      = new Float32Array();
     this.viewport = [0, 0, -4];
     this.canvas = document.createElement( 'canvas' );
     container.appendChild( this.canvas );
-
     if( !this.init_canvas() ){
         console.warn( 'Something about missing gl canvas should be written!' );
         return;
     }
 
+    let stop = document.createElement( 'div' );
+    stop.id = 'stop-btn';
+    container.appendChild( stop );
+
+    stop.addEventListener( 'click', function(){
+        stream.stop_streaming();
+    });
+
+    stream.on( 'done', function() {
+        this.pts = stream.coords;
+        this.init_buffers();
+        // container.removeChild( stop );
+    }.bind( this ));
+
     stream.on( 'pointbatch', function(){
         // this.draw_buffers( stream.coords, stream.points );
     }.bind( this ) );
-
-    stream.on( 'done', function() {
-        this.init_buffers( stream.coords, stream.points );
-    }.bind( this ));
 
     if( this.init_shaders() ){
         stream.start_streaming();
@@ -94,7 +104,7 @@ LidarCanvas.prototype.init_canvas = function()
     return support;
 };
 
-LidarCanvas.prototype.init_buffers = function(pts, len)
+LidarCanvas.prototype.init_buffers = function()
 {
     // ok, need to pull buffer data out!
     let gl = this.canvas.getContext( 'webgl' );
@@ -114,10 +124,11 @@ LidarCanvas.prototype.init_buffers = function(pts, len)
 
     this.vecPos = gl.createBuffer();
     this.vecPos.itemSize = 3;
-    this.vecPos.numItems = len;
+    this.vecPos.numItems = this.pts.length / this.vecPos.itemSize;
+
     gl.bindBuffer( gl.ARRAY_BUFFER, this.vecPos );
     // gl.bufferData( gl.ARRAY_BUFFER, new Float32Array( sample ), gl.STATIC_DRAW );
-    gl.bufferData( gl.ARRAY_BUFFER, pts, gl.STATIC_DRAW );
+    gl.bufferData( gl.ARRAY_BUFFER, this.pts, gl.STATIC_DRAW );
     gl.vertexAttribPointer( this.shaderp.positionLocation, this.vecPos.itemSize, gl.FLOAT, false, 0, 0 );
     
     this.set_viewport();
