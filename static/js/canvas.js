@@ -25,16 +25,16 @@ function LidarCanvas(stream, info){
     });
 
     stream.on( 'done', function() {
-        this.pts = stream.coords;
-        this.init_buffers();
-        // container.removeChild( stop );
+        container.removeChild( stop );
     }.bind( this ));
 
     stream.on( 'pointbatch', function(){
-        // this.draw_buffers( stream.coords, stream.points );
+        this.pts = stream.coords;
+        this.draw();
     }.bind( this ) );
 
     if( this.init_shaders() ){
+        this.init_buffers();
         stream.start_streaming();
         info.start_progress();
     }
@@ -81,8 +81,13 @@ LidarCanvas.prototype.set_viewport = function()
 
 LidarCanvas.prototype.draw = function()
 {
+    if( this.pts.length == 0 ) return;
+
     let gl = this.canvas.getContext( 'webgl' );
 
+    this.vecPos.numItems = this.pts.length / this.vecPos.itemSize;
+
+    gl.bufferData( gl.ARRAY_BUFFER, this.pts, gl.STREAM_DRAW );
     gl.viewport( 0, 0, gl.viewportWidth, gl.viewportHeight );
     gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT );
 
@@ -116,19 +121,10 @@ LidarCanvas.prototype.init_buffers = function()
     mat4.perspective( pmat, 45, gl.viewportWidth / gl.viewportHeight, .1, 100.0 );
     gl.uniformMatrix4fv( this.shaderp.persp, false, pmat );
 
-    // let sample = [
-    //      0.0,  1.0, 0.0,
-    //     -1.0, -1.0, 0.0,
-    //      1.0, -1.0, 0.0
-    // ];
-
     this.vecPos = gl.createBuffer();
     this.vecPos.itemSize = 3;
-    this.vecPos.numItems = this.pts.length / this.vecPos.itemSize;
 
     gl.bindBuffer( gl.ARRAY_BUFFER, this.vecPos );
-    // gl.bufferData( gl.ARRAY_BUFFER, new Float32Array( sample ), gl.STATIC_DRAW );
-    gl.bufferData( gl.ARRAY_BUFFER, this.pts, gl.STATIC_DRAW );
     gl.vertexAttribPointer( this.shaderp.positionLocation, this.vecPos.itemSize, gl.FLOAT, false, 0, 0 );
     
     this.set_viewport();

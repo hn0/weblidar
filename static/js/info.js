@@ -75,11 +75,8 @@ Info.prototype.draw = function()
     let y   = this.progress.height * .5;
     let p   = this.padding + 1;
 
-    // ctx.fillStyle = '#ff0';
-    // ctx.fillRect( p, y - this.stroke_max, w - 2 * p, this.stroke_max );
     ctx.clearRect( p, y - this.stroke_max, w - 2 * p, 2 * this.stroke_max );
-    // ctx.clearRect( 0, 0, ctx.canvas.width, ctx.canvas.height );
-
+    
     // draw line, ready & bar
     let x = p;
     Object.keys( this.stroke_widths ).forEach( function(k){
