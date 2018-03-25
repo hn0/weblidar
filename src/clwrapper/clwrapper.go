@@ -12,7 +12,7 @@ type Program struct {
 	Source  string
 	FncName string
 	Val     func(int) (float32, float32, float32)
-	Res     func(int, [3]float32, [2]float32)
+	Res     func(int, [3]float32, float32)
 }
 
 type cldev struct {
@@ -22,7 +22,7 @@ type cldev struct {
 
 var v *cldev
 var WORK_UNIT_SZ int = 8
-var MAX_UNIT_SZ int  = 1024
+var MAX_UNIT_SZ int = 1024
 
 func RunProgram(p *Program, datasz int) bool {
 
@@ -53,18 +53,17 @@ func RunProgram(p *Program, datasz int) bool {
 	datax := make([]float32, wunit*WORK_UNIT_SZ)
 	datay := make([]float32, wunit*WORK_UNIT_SZ)
 	dataz := make([]float32, wunit*WORK_UNIT_SZ)
-	dist := make([]float32, wunit*WORK_UNIT_SZ)
-	angl := make([]float32, wunit*WORK_UNIT_SZ)
+	cat := make([]float32, wunit*WORK_UNIT_SZ)
 
 	for i := 0; i < datasz; i++ {
 		datax[i], datay[i], dataz[i] = p.Val(i)
-		// dist[i] = 1
+		cat[i] = 0
 	}
 	for i := datasz; i < wunit*WORK_UNIT_SZ; i++ {
 		datax[i] = 0
 		datay[i] = 0
 		dataz[i] = 0
-		// dist[i] = 1
+		cat[i] = 0
 	}
 
 	var err cl.CL_int
@@ -93,7 +92,7 @@ func RunProgram(p *Program, datasz int) bool {
 			return false
 		}
 
-		var matx_buff, maty_buff, matz_buff, dist_buff, angle_buff cl.CL_mem
+		var matx_buff, maty_buff, matz_buff, cat_buff cl.CL_mem
 		matx_buff = cl.CLCreateBuffer(ctx, cl.CL_MEM_READ_ONLY|cl.CL_MEM_COPY_HOST_PTR,
 			cl.CL_size_t(int(unsafe.Sizeof(datax[0]))*len(datax)), unsafe.Pointer(&datax[0]), &err)
 		if assert(err, "Cannot create input buffer") {
@@ -103,11 +102,7 @@ func RunProgram(p *Program, datasz int) bool {
 			cl.CL_size_t(int(unsafe.Sizeof(datax[0]))*len(datax)), unsafe.Pointer(&datay[0]), nil)
 		matz_buff = cl.CLCreateBuffer(ctx, cl.CL_MEM_READ_ONLY|cl.CL_MEM_COPY_HOST_PTR,
 			cl.CL_size_t(int(unsafe.Sizeof(datax[0]))*len(datax)), unsafe.Pointer(&dataz[0]), &err)
-		dist_buff = cl.CLCreateBuffer(ctx, cl.CL_MEM_WRITE_ONLY, cl.CL_size_t(int(unsafe.Sizeof(dist[0]))*len(dist)), nil, &err)
-		if assert(err, "Cannot create output buffer") {
-			return false
-		}
-		angle_buff = cl.CLCreateBuffer(ctx, cl.CL_MEM_WRITE_ONLY, cl.CL_size_t(int(unsafe.Sizeof(angl[0]))*len(angl)), nil, &err)
+		cat_buff = cl.CLCreateBuffer(ctx, cl.CL_MEM_WRITE_ONLY, cl.CL_size_t(int(unsafe.Sizeof(cat[0]))*len(cat)), nil, &err)
 		if assert(err, "Cannot create output buffer") {
 			return false
 		}
@@ -124,8 +119,7 @@ func RunProgram(p *Program, datasz int) bool {
 		}
 		cl.CLSetKernelArg(kernel, 1, cl.CL_size_t(unsafe.Sizeof(maty_buff)), unsafe.Pointer(&maty_buff))
 		cl.CLSetKernelArg(kernel, 2, cl.CL_size_t(unsafe.Sizeof(matz_buff)), unsafe.Pointer(&matz_buff))
-		cl.CLSetKernelArg(kernel, 3, cl.CL_size_t(unsafe.Sizeof(dist_buff)), unsafe.Pointer(&dist_buff))
-		cl.CLSetKernelArg(kernel, 4, cl.CL_size_t(unsafe.Sizeof(angle_buff)), unsafe.Pointer(&angle_buff))
+		cl.CLSetKernelArg(kernel, 3, cl.CL_size_t(unsafe.Sizeof(cat_buff)), unsafe.Pointer(&cat_buff))
 
 		// queue
 		queue := cl.CLCreateCommandQueue(ctx, v.dev[0], 0, &err)
@@ -142,21 +136,18 @@ func RunProgram(p *Program, datasz int) bool {
 		if assert(err, "Cannot create kernel queue") {
 			return false
 		}
-		cl.CLEnqueueReadBuffer(queue, dist_buff, cl.CL_TRUE, 0, cl.CL_size_t(int(unsafe.Sizeof(dist[0]))*len(dist)), unsafe.Pointer(&dist[0]), 0, nil, nil)
-		cl.CLEnqueueReadBuffer(queue, angle_buff, cl.CL_TRUE, 0, cl.CL_size_t(int(unsafe.Sizeof(angl[0]))*len(angl)), unsafe.Pointer(&angl[0]), 0, nil, nil)
+		cl.CLEnqueueReadBuffer(queue, cat_buff, cl.CL_TRUE, 0, cl.CL_size_t(int(unsafe.Sizeof(cat[0]))*len(cat)), unsafe.Pointer(&cat[0]), 0, nil, nil)
 
 		// cl.CLReleaseKernel(kernel)
 		cl.CLReleaseCommandQueue(queue)
 		cl.CLReleaseMemObject(matx_buff)
 		cl.CLReleaseMemObject(maty_buff)
 		cl.CLReleaseMemObject(matz_buff)
-		cl.CLReleaseMemObject(dist_buff)
+		cl.CLReleaseMemObject(cat_buff)
 
 		for i := 0; i < datasz; i++ {
 			// datax[i], datay[i], dataz[i] = p.Val(i)
-			p.Res(i,
-				[3]float32{datax[i], datay[i], dataz[i]},
-				[2]float32{dist[i], angl[i]})
+			p.Res(i, [3]float32{datax[i], datay[i], dataz[i]}, cat[i])
 		}
 		return true
 	}
@@ -203,7 +194,7 @@ func HasSupport() bool {
 	errNum = cl.CLGetPlatformIDs(0, nil, &numPlatforms)
 	if errNum == cl.CL_SUCCESS && numPlatforms > 0 {
 
-		if tst, devices := get_frist_device(numPlatforms); tst > 0{
+		if tst, devices := get_frist_device(numPlatforms); tst > 0 {
 			// name of device!
 			var name string
 			var paramValueSize cl.CL_size_t
@@ -214,7 +205,7 @@ func HasSupport() bool {
 					var wi_sizes interface{}
 					cl.CLGetDeviceInfo(devices[0], cl.CL_DEVICE_MAX_WORK_ITEM_SIZES, paramValueSize, &wi_sizes, nil)
 
-					if sz := int(wi_sizes.([]cl.CL_size_t)[0]); sz > 0{
+					if sz := int(wi_sizes.([]cl.CL_size_t)[0]); sz > 0 {
 						MAX_UNIT_SZ = int(wi_sizes.([]cl.CL_size_t)[0])
 					}
 				}
@@ -237,7 +228,7 @@ func get_frist_device(num cl.CL_uint) (int, []cl.CL_device_id) {
 	plids := make([]cl.CL_platform_id, num)
 	if err := cl.CLGetPlatformIDs(num, plids, nil); err == cl.CL_SUCCESS && len(plids) > 0 {
 		for i := 0; i < len(plids); i++ {
-			if err = cl.CLGetDeviceIDs( plids[i], cl.CL_DEVICE_TYPE_GPU, 1, devices, nil ); err == cl.CL_SUCCESS {
+			if err = cl.CLGetDeviceIDs(plids[i], cl.CL_DEVICE_TYPE_GPU, 1, devices, nil); err == cl.CL_SUCCESS {
 				return 1, devices
 			}
 		}
