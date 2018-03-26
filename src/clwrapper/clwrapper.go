@@ -12,7 +12,7 @@ type Program struct {
 	Source  string
 	FncName string
 	Val     func(int) (float32, float32, float32)
-	Res     func(int, [3]float32, float32)
+	Res     func(int, [3]float32, [2]float32)
 }
 
 type cldev struct {
@@ -53,17 +53,18 @@ func RunProgram(p *Program, datasz int) bool {
 	datax := make([]float32, wunit*WORK_UNIT_SZ)
 	datay := make([]float32, wunit*WORK_UNIT_SZ)
 	dataz := make([]float32, wunit*WORK_UNIT_SZ)
-	cat := make([]float32, wunit*WORK_UNIT_SZ)
+	dist := make([]float32, wunit*WORK_UNIT_SZ)
+	angl := make([]float32, wunit*WORK_UNIT_SZ)
 
 	for i := 0; i < datasz; i++ {
 		datax[i], datay[i], dataz[i] = p.Val(i)
-		cat[i] = 0
+		// dist[i] = 1
 	}
 	for i := datasz; i < wunit*WORK_UNIT_SZ; i++ {
 		datax[i] = 0
 		datay[i] = 0
 		dataz[i] = 0
-		cat[i] = 0
+		// dist[i] = 1
 	}
 
 	var err cl.CL_int
@@ -92,7 +93,7 @@ func RunProgram(p *Program, datasz int) bool {
 			return false
 		}
 
-		var matx_buff, maty_buff, matz_buff, cat_buff cl.CL_mem
+		var matx_buff, maty_buff, matz_buff, dist_buff, angle_buff cl.CL_mem
 		matx_buff = cl.CLCreateBuffer(ctx, cl.CL_MEM_READ_ONLY|cl.CL_MEM_COPY_HOST_PTR,
 			cl.CL_size_t(int(unsafe.Sizeof(datax[0]))*len(datax)), unsafe.Pointer(&datax[0]), &err)
 		if assert(err, "Cannot create input buffer") {
@@ -102,7 +103,11 @@ func RunProgram(p *Program, datasz int) bool {
 			cl.CL_size_t(int(unsafe.Sizeof(datax[0]))*len(datax)), unsafe.Pointer(&datay[0]), nil)
 		matz_buff = cl.CLCreateBuffer(ctx, cl.CL_MEM_READ_ONLY|cl.CL_MEM_COPY_HOST_PTR,
 			cl.CL_size_t(int(unsafe.Sizeof(datax[0]))*len(datax)), unsafe.Pointer(&dataz[0]), &err)
-		cat_buff = cl.CLCreateBuffer(ctx, cl.CL_MEM_WRITE_ONLY, cl.CL_size_t(int(unsafe.Sizeof(cat[0]))*len(cat)), nil, &err)
+		dist_buff = cl.CLCreateBuffer(ctx, cl.CL_MEM_WRITE_ONLY, cl.CL_size_t(int(unsafe.Sizeof(dist[0]))*len(dist)), nil, &err)
+		if assert(err, "Cannot create output buffer") {
+			return false
+		}
+		angle_buff = cl.CLCreateBuffer(ctx, cl.CL_MEM_WRITE_ONLY, cl.CL_size_t(int(unsafe.Sizeof(angl[0]))*len(angl)), nil, &err)
 		if assert(err, "Cannot create output buffer") {
 			return false
 		}
@@ -119,7 +124,8 @@ func RunProgram(p *Program, datasz int) bool {
 		}
 		cl.CLSetKernelArg(kernel, 1, cl.CL_size_t(unsafe.Sizeof(maty_buff)), unsafe.Pointer(&maty_buff))
 		cl.CLSetKernelArg(kernel, 2, cl.CL_size_t(unsafe.Sizeof(matz_buff)), unsafe.Pointer(&matz_buff))
-		cl.CLSetKernelArg(kernel, 3, cl.CL_size_t(unsafe.Sizeof(cat_buff)), unsafe.Pointer(&cat_buff))
+		cl.CLSetKernelArg(kernel, 3, cl.CL_size_t(unsafe.Sizeof(dist_buff)), unsafe.Pointer(&dist_buff))
+		cl.CLSetKernelArg(kernel, 4, cl.CL_size_t(unsafe.Sizeof(angle_buff)), unsafe.Pointer(&angle_buff))
 
 		// queue
 		queue := cl.CLCreateCommandQueue(ctx, v.dev[0], 0, &err)
@@ -136,18 +142,22 @@ func RunProgram(p *Program, datasz int) bool {
 		if assert(err, "Cannot create kernel queue") {
 			return false
 		}
-		cl.CLEnqueueReadBuffer(queue, cat_buff, cl.CL_TRUE, 0, cl.CL_size_t(int(unsafe.Sizeof(cat[0]))*len(cat)), unsafe.Pointer(&cat[0]), 0, nil, nil)
+		cl.CLEnqueueReadBuffer(queue, dist_buff, cl.CL_TRUE, 0, cl.CL_size_t(int(unsafe.Sizeof(dist[0]))*len(dist)), unsafe.Pointer(&dist[0]), 0, nil, nil)
+		cl.CLEnqueueReadBuffer(queue, angle_buff, cl.CL_TRUE, 0, cl.CL_size_t(int(unsafe.Sizeof(angl[0]))*len(angl)), unsafe.Pointer(&angl[0]), 0, nil, nil)
 
 		// cl.CLReleaseKernel(kernel)
 		cl.CLReleaseCommandQueue(queue)
 		cl.CLReleaseMemObject(matx_buff)
 		cl.CLReleaseMemObject(maty_buff)
 		cl.CLReleaseMemObject(matz_buff)
-		cl.CLReleaseMemObject(cat_buff)
+		cl.CLReleaseMemObject(dist_buff)
+		cl.CLReleaseMemObject(angle_buff)
 
 		for i := 0; i < datasz; i++ {
 			// datax[i], datay[i], dataz[i] = p.Val(i)
-			p.Res(i, [3]float32{datax[i], datay[i], dataz[i]}, cat[i])
+			p.Res(i,
+				[3]float32{datax[i], datay[i], dataz[i]},
+				[2]float32{dist[i], angl[i]})
 		}
 		return true
 	}

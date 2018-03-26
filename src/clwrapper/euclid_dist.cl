@@ -1,10 +1,10 @@
+
+// TODO: pass values from wrapper!
 __kernel void euclid_dist(__global float* inx,
                           __global float* iny,
                           __global float* inz,
-                          __global float* cat) {
-    
-    // we need global variable to write data in!
-
+                          __global float* dist,
+                          __global float* angle) {
 
     float3 origin, zaxis;
 
@@ -16,11 +16,7 @@ __kernel void euclid_dist(__global float* inx,
     zaxis  = (float3)( 1.0, 1.0, 1.0 );
 
     for( int i = start; i < sz; i += off ){
-
-        // As of start, a crude catergorisation of the points is needed!
-        //  having only magnitude and angle in respect to z axis should be enough to perform the tests
-        // cat[i] = distance( origin, (float3)( inx[i], iny[i], inz[i]) );
-        // cat[i] = start;
-        cat[0]++;
+        dist[i] = fabs( distance( origin, (float3)( inx[i], iny[i], inz[i]) ) );
+        angle[i] = dot( zaxis, (float3)(inx[i], iny[i], inz[i]));
     }
 }

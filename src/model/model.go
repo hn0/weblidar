@@ -32,7 +32,7 @@ func CreateModel(path string) *Model {
 	defer lf.Close()
 
 	m.Numpts = lf.Header.NumberPoints
-	m.Numpts = 10512
+	m.Numpts = 50000
 	if m.Numpts > 0 {
 		fmt.Printf("Processing input dataset containing %d points\n", m.Numpts)
 
