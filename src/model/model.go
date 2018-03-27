@@ -6,6 +6,7 @@ import (
 	"github.com/jblindsay/lidario"
 	"reflect"
 	"time"
+	"math"
 )
 
 type point struct {
@@ -21,6 +22,8 @@ type Model struct {
 	Pts    []point
 }
 
+var sqrt3 float32 = 1.73205080757;
+
 func CreateModel(path string) *Model {
 	m := new(Model)
 	fmt.Println(path)
@@ -35,6 +38,9 @@ func CreateModel(path string) *Model {
 	m.Numpts = 50000
 	if m.Numpts > 0 {
 		fmt.Printf("Processing input dataset containing %d points\n", m.Numpts)
+
+		can_res := 50
+		sortgrd := create_sortgrid(can_res)
 
 		domains := make(map[string][2]float64)
 		directions := []string{"X", "Y", "Z"}
@@ -76,11 +82,7 @@ func CreateModel(path string) *Model {
 		}
 
 		resfnc := func(i int, xyz [3]float32, dist [2]float32) {
-			m.Pts[i].x = xyz[0]
-			m.Pts[i].y = xyz[1]
-			m.Pts[i].z = xyz[2]
 			// order of reading is not the best, categorization is next
-			// fmt.Println(i, xyz, dist)
 			if i == 1 {
 				fmt.Printf("\rDone. Processing took: %s\n", time.Since(start))
 				fmt.Println("Reading results")
@@ -89,6 +91,19 @@ func CreateModel(path string) *Model {
 			} else if i%500 == 0 {
 				fmt.Printf("\r\t %f%%", (float64(i)/float64(m.Numpts))*100)
 			}
+
+			// fmt.Println( sortgrd[idist] )
+
+			// domain of the dist 0 .. sqrt(3)
+			idist := int( math.Floor( float64(len(sortgrd)) * float64( dist[0] / sqrt3 ) ) )
+			// angle is in the range 0 .. 2Pi
+			angdist := int( math.Floor( float64(len(sortgrd)) * float64(dist[1] / 2 * math.Pi) ) )
+			// fmt.Println( sortgrd[idist][angdist] )
+			fmt.Println( idist, angdist )
+
+			m.Pts[i].x = xyz[0]
+			m.Pts[i].y = xyz[1]
+			m.Pts[i].z = xyz[2]
 		}
 
 		// TODO: relative path?!
@@ -103,6 +118,15 @@ func CreateModel(path string) *Model {
 	}
 
 	return m
+}
+
+func create_sortgrid(size int) [][]uint8 {
+	// use 2d !?
+	grid := make([][]uint8, size)
+	for i := range grid {
+		grid[i] = make([]uint8, size)
+	}
+	return grid
 }
 
 func (m *Model) calculate_dist() {

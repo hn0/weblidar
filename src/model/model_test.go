@@ -8,6 +8,10 @@ import(
 
 var m *Model
 
+func TestGrid(t *testing.T) {
+	create_sortgrid(10)
+}
+
 func TestFile(t *testing.T) {
 
 	// var lf *lidario.LasFile
