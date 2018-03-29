@@ -18,7 +18,8 @@ type point struct {
 type Model struct {
 	Numpts int
 	Valid  bool
-	Pts    map[uint8][]point
+	Pts    map[uint16][]point
+	Sizes  map[uint16]int
 }
 
 var sqrt3 float32 = 1.73205080757
@@ -55,7 +56,8 @@ func CreateModel(path string) *Model {
 
 		// read and normalize all the points
 		var start time.Time
-		m.Pts = make(map[uint8][]point, 255)
+		m.Pts = make(map[uint16][]point, len(sortgrd))
+		m.Sizes = make(map[uint16]int, len(sortgrd))
 		valid := true
 
 		fmt.Println("Reading points:\n")
@@ -105,6 +107,7 @@ func CreateModel(path string) *Model {
 			}
 
 			m.Pts[sortgrd[idist][angdist]] = append(m.Pts[sortgrd[idist][angdist]], pt)
+			m.Sizes[sortgrd[idist][angdist]] += 1
 			sortgrd[idist][angdist] += 1
 		}
 
@@ -114,7 +117,8 @@ func CreateModel(path string) *Model {
 
 		if valid {
 			m.Valid = true
-			fmt.Println(m.Pts)
+			// fmt.Println(m.Pts)
+			fmt.Println(m.Sizes)
 		}
 
 	}
@@ -122,11 +126,11 @@ func CreateModel(path string) *Model {
 	return m
 }
 
-func create_sortgrid(size int) [][]uint8 {
+func create_sortgrid(size int) [][]uint16 {
 	// use 2d !?
-	grid := make([][]uint8, size)
+	grid := make([][]uint16, size)
 	for i := range grid {
-		grid[i] = make([]uint8, size)
+		grid[i] = make([]uint16, size)
 	}
 	return grid
 }

@@ -9,7 +9,7 @@ import (
 	"model"
 	"net/http"
 	"os"
-	_ "strconv"
+	"strconv"
 )
 
 var PORT int = 3000
@@ -33,22 +33,24 @@ func InfoHandeler(w http.ResponseWriter, r *http.Request) {
 func DataHandeler(w http.ResponseWriter, r *http.Request) {
 
 	//start point
-	// start := 0
-	// if keys := r.URL.Query(); len(keys) > 0 {
-	// 	if val, exists := keys["itter"]; exists {
-	// 		if v, err := strconv.Atoi(val[0]); err == nil {
-	// 			start = CLIENT_BUFFER * v
-	// 		}
-	// 	}
-	// }
-	// end := start + CLIENT_BUFFER
-	// if end > m.Numpts {
-	// 	end = m.Numpts
-	// }
-	// sz := end - start
-	// if sz < 0 {
-	// 	sz = 0
-	// }
+	start := 0
+	if keys := r.URL.Query(); len(keys) > 0 {
+		if val, exists := keys["itter"]; exists {
+			if v, err := strconv.Atoi(val[0]); err == nil {
+				start = CLIENT_BUFFER * v
+			}
+		}
+	}
+	end := start + CLIENT_BUFFER
+	if end > m.Numpts {
+		end = m.Numpts
+	}
+	sz := end - start
+	if sz < 0 {
+		sz = 0
+	}
+
+	fmt.Println(start, end, sz)
 
 	// var data []byte
 	// // lets define first byte length of folloup points
@@ -111,5 +113,5 @@ func main() {
 	http.HandleFunc("/info", InfoHandeler)
 	http.HandleFunc("/points/", DataHandeler)
 	http.Handle("/", http.FileServer(http.Dir("./static")))
-	// fmt.Println(http.ListenAndServe(fmt.Sprintf(":%d", PORT), nil))
+	fmt.Println(http.ListenAndServe(fmt.Sprintf(":%d", PORT), nil))
 }
