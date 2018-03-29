@@ -2,14 +2,14 @@ package main
 
 import (
 	"clwrapper"
-	"encoding/binary"
+	_ "encoding/binary"
 	"encoding/json"
 	"fmt"
-	"math"
+	_ "math"
 	"model"
 	"net/http"
 	"os"
-	"strconv"
+	_ "strconv"
 )
 
 var PORT int = 3000
@@ -33,42 +33,42 @@ func InfoHandeler(w http.ResponseWriter, r *http.Request) {
 func DataHandeler(w http.ResponseWriter, r *http.Request) {
 
 	//start point
-	start := 0
-	if keys := r.URL.Query(); len(keys) > 0 {
-		if val, exists := keys["itter"]; exists {
-			if v, err := strconv.Atoi(val[0]); err == nil {
-				start = CLIENT_BUFFER * v
-			}
-		}
-	}
-	end := start + CLIENT_BUFFER
-	if end > m.Numpts {
-		end = m.Numpts
-	}
-	sz := end - start
-	if sz < 0 {
-		sz = 0
-	}
+	// start := 0
+	// if keys := r.URL.Query(); len(keys) > 0 {
+	// 	if val, exists := keys["itter"]; exists {
+	// 		if v, err := strconv.Atoi(val[0]); err == nil {
+	// 			start = CLIENT_BUFFER * v
+	// 		}
+	// 	}
+	// }
+	// end := start + CLIENT_BUFFER
+	// if end > m.Numpts {
+	// 	end = m.Numpts
+	// }
+	// sz := end - start
+	// if sz < 0 {
+	// 	sz = 0
+	// }
 
-	var data []byte
-	// lets define first byte length of folloup points
-	data = make([]byte, 4+(12*sz))
-	binary.LittleEndian.PutUint32(data[0:4], uint32(sz))
-	for i := 0; i < sz; i++ {
-		off := i * 12
-		binary.LittleEndian.PutUint32(data[off+4:off+8], math.Float32bits(m.Pts[start+i].GetX()))
-		binary.LittleEndian.PutUint32(data[off+8:off+12], math.Float32bits(m.Pts[start+i].GetY()))
-		binary.LittleEndian.PutUint32(data[off+12:off+16], math.Float32bits(m.Pts[start+i].GetZ()))
+	// var data []byte
+	// // lets define first byte length of folloup points
+	// data = make([]byte, 4+(12*sz))
+	// binary.LittleEndian.PutUint32(data[0:4], uint32(sz))
+	// for i := 0; i < sz; i++ {
+	// 	off := i * 12
+	// 	binary.LittleEndian.PutUint32(data[off+4:off+8], math.Float32bits(m.Pts[start+i].GetX()))
+	// 	binary.LittleEndian.PutUint32(data[off+8:off+12], math.Float32bits(m.Pts[start+i].GetY()))
+	// 	binary.LittleEndian.PutUint32(data[off+12:off+16], math.Float32bits(m.Pts[start+i].GetZ()))
 
-		fmt.Println(m.Pts[i].GetX(), m.Pts[i].GetY(), m.Pts[i].GetZ())
-	}
+	// 	fmt.Println(m.Pts[i].GetX(), m.Pts[i].GetY(), m.Pts[i].GetZ())
+	// }
 
-	set_resp_headers(w)
-	w.Header().Set("Content-Type", "application/octet-stream")
-	w.Header().Set("Content-Length", strconv.Itoa(len(data)))
-	binary.Write(w, binary.LittleEndian, data)
+	// set_resp_headers(w)
+	// w.Header().Set("Content-Type", "application/octet-stream")
+	// w.Header().Set("Content-Length", strconv.Itoa(len(data)))
+	// binary.Write(w, binary.LittleEndian, data)
 
-	fmt.Printf("No pts: %d\n", sz)
+	// fmt.Printf("No pts: %d\n", sz)
 }
 
 func set_resp_headers(w http.ResponseWriter) {
@@ -111,5 +111,5 @@ func main() {
 	http.HandleFunc("/info", InfoHandeler)
 	http.HandleFunc("/points/", DataHandeler)
 	http.Handle("/", http.FileServer(http.Dir("./static")))
-	fmt.Println(http.ListenAndServe(fmt.Sprintf(":%d", PORT), nil))
+	// fmt.Println(http.ListenAndServe(fmt.Sprintf(":%d", PORT), nil))
 }

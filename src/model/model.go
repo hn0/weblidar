@@ -4,29 +4,27 @@ import (
 	"clwrapper"
 	"fmt"
 	"github.com/jblindsay/lidario"
+	"math"
 	"reflect"
 	"time"
-	"math"
 )
 
 type point struct {
-	x     float32
-	y     float32
-	z     float32
-	class int
+	x float32
+	y float32
+	z float32
 }
 
 type Model struct {
 	Numpts int
 	Valid  bool
-	Pts    []point
+	Pts    map[uint8][]point
 }
 
-var sqrt3 float32 = 1.73205080757;
+var sqrt3 float32 = 1.73205080757
 
 func CreateModel(path string) *Model {
 	m := new(Model)
-	fmt.Println(path)
 
 	lf, err := lidario.NewLasFile(path, "r")
 	if err != nil {
@@ -35,11 +33,11 @@ func CreateModel(path string) *Model {
 	defer lf.Close()
 
 	m.Numpts = lf.Header.NumberPoints
-	m.Numpts = 50000
+	m.Numpts = 50
 	if m.Numpts > 0 {
 		fmt.Printf("Processing input dataset containing %d points\n", m.Numpts)
 
-		can_res := 50
+		can_res := 2000
 		sortgrd := create_sortgrid(can_res)
 
 		domains := make(map[string][2]float64)
@@ -57,7 +55,7 @@ func CreateModel(path string) *Model {
 
 		// read and normalize all the points
 		var start time.Time
-		m.Pts = make([]point, m.Numpts)
+		m.Pts = make(map[uint8][]point, 255)
 		valid := true
 
 		fmt.Println("Reading points:\n")
@@ -95,15 +93,19 @@ func CreateModel(path string) *Model {
 			// fmt.Println( sortgrd[idist] )
 
 			// domain of the dist 0 .. sqrt(3)
-			idist := int( math.Floor( float64(len(sortgrd)) * float64( dist[0] / sqrt3 ) ) )
+			idist := int(math.Floor(float64(len(sortgrd)) * float64(dist[0]/sqrt3)))
 			// angle is in the range 0 .. 2Pi
-			angdist := int( math.Floor( float64(len(sortgrd)) * float64(dist[1] / 2 * math.Pi) ) )
-			// fmt.Println( sortgrd[idist][angdist] )
-			fmt.Println( idist, angdist )
+			angdist := int(math.Floor(float64(len(sortgrd[0])) * float64(dist[1]/(2*math.Pi))))
+			// fmt.Println(sortgrd[idist][angdist], idist, angdist)
 
-			m.Pts[i].x = xyz[0]
-			m.Pts[i].y = xyz[1]
-			m.Pts[i].z = xyz[2]
+			pt := point{
+				xyz[0],
+				xyz[1],
+				xyz[2],
+			}
+
+			m.Pts[sortgrd[idist][angdist]] = append(m.Pts[sortgrd[idist][angdist]], pt)
+			sortgrd[idist][angdist] += 1
 		}
 
 		// TODO: relative path?!
@@ -112,7 +114,7 @@ func CreateModel(path string) *Model {
 
 		if valid {
 			m.Valid = true
-			// m.calculate_dist()
+			fmt.Println(m.Pts)
 		}
 
 	}
@@ -127,31 +129,6 @@ func create_sortgrid(size int) [][]uint8 {
 		grid[i] = make([]uint8, size)
 	}
 	return grid
-}
-
-func (m *Model) calculate_dist() {
-
-	// fmt.Println("Classifying point cloud")
-
-	// acctually we don't need such huge matrix, we only need final number of neighbors!?
-	// dist := make([]uint8, n*n)
-	// for now let just use cpu and see performance!
-	// r := [2]float64{math.MaxFloat64, 0}
-	// n := 10
-	// for i := 0; i < n; i++ {
-	// 	for j := n; j > i; j-- {
-	// 		x := square(m.Pts[i].x - m.Pts[j].x)
-	// 		y := square(m.Pts[i].y - m.Pts[j].y)
-	// 		z := square(m.Pts[i].z - m.Pts[j].z)
-	// 		d := math.Sqrt(x + y + z)
-	// 		// fmt.Println(d)
-	// 		r[0] = math.Min(r[0], d)
-	// 		r[1] = math.Max(r[1], d)
-	// 	}
-	// }
-	// fmt.Println(r)
-	// TODO n by n matrix, maybe even using opencl
-	// calculate simple euclidian distances!
 }
 
 func (p *point) GetX() float32 {
