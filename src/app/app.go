@@ -45,19 +45,24 @@ func DataHandeler(w http.ResponseWriter, r *http.Request) {
 	if end > m.Numpts {
 		end = m.Numpts
 	}
-	sz := end - start
-	if sz < 0 {
-		sz = 0
-	}
-
-	fmt.Println(start, end, sz)
+	fmt.Println(start, end)
 
 	cpt := 0
-	for i, sz := range m.Sizes {
-		fmt.Println(i, sz)
+	for i, n := range m.Sizes {
+		if cpt >= end {
+			fmt.Println("loop end!")
+			break
+		}
 
-		cpt += sz
+		cpt += int(n)
+		if cpt-1 > start {
+			// cpt upper bound for the index!
+
+			fmt.Println("get index", i, cpt)
+		}
 	}
+
+	fmt.Println("-----------request end-----------------")
 
 	// var data []byte
 	// // lets define first byte length of folloup points
