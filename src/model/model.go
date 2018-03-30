@@ -19,7 +19,7 @@ type Model struct {
 	Numpts int
 	Valid  bool
 	Pts    map[uint16][]point
-	Sizes  map[uint16]int
+	Sizes  []uint16
 }
 
 var sqrt3 float32 = 1.73205080757
@@ -56,8 +56,8 @@ func CreateModel(path string) *Model {
 
 		// read and normalize all the points
 		var start time.Time
-		m.Pts = make(map[uint16][]point, len(sortgrd))
-		m.Sizes = make(map[uint16]int, len(sortgrd))
+		m.Pts = make(map[uint16][]point)
+		m.Sizes = []uint16{0}
 		valid := true
 
 		fmt.Println("Reading points:\n")
@@ -89,7 +89,7 @@ func CreateModel(path string) *Model {
 			} else if i == m.Numpts-1 {
 				fmt.Printf("\r\t 100%% Done.\n")
 			} else if i%500 == 0 {
-				fmt.Printf("\r\t %f%%", (float64(i)/float64(m.Numpts))*100)
+				fmt.Printf("\r\t %f%%n", (float64(i)/float64(m.Numpts))*100)
 			}
 
 			// fmt.Println( sortgrd[idist] )
@@ -107,7 +107,12 @@ func CreateModel(path string) *Model {
 			}
 
 			m.Pts[sortgrd[idist][angdist]] = append(m.Pts[sortgrd[idist][angdist]], pt)
+
+			if int(sortgrd[idist][angdist]) >= len(m.Sizes) {
+				m.Sizes = append(m.Sizes, 0)
+			}
 			m.Sizes[sortgrd[idist][angdist]] += 1
+
 			sortgrd[idist][angdist] += 1
 		}
 

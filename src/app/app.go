@@ -52,6 +52,13 @@ func DataHandeler(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Println(start, end, sz)
 
+	cpt := 0
+	for i, sz := range m.Sizes {
+		fmt.Println(i, sz)
+
+		cpt += sz
+	}
+
 	// var data []byte
 	// // lets define first byte length of folloup points
 	// data = make([]byte, 4+(12*sz))
