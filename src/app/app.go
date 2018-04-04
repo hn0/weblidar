@@ -2,10 +2,10 @@ package main
 
 import (
 	"clwrapper"
-	_ "encoding/binary"
+	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	_ "math"
+	"math"
 	"model"
 	"net/http"
 	"os"
@@ -45,48 +45,48 @@ func DataHandeler(w http.ResponseWriter, r *http.Request) {
 	if end > m.Numpts {
 		end = m.Numpts
 	}
-	fmt.Println(start, end)
+	if start > end {
+		start = end
+	}
+	// fmt.Println(start, end)
+	// fmt.Println(m.Sizes)
 
-	fmt.Println(m.Sizes)
+	var data []byte
+	data = make([]byte, 4+(16*(end-start)))
+	binary.LittleEndian.PutUint32(data[0:4], uint32(end-start))
+	
 	cpt := 0
+	off := 0
 	for i, n := range m.Sizes {
 		if cpt >= end {
-			fmt.Println("loop end!")
+			// fmt.Println("loop end!")
 			break
 		}
 
 		// fmt.Println(start, cpt, n)
 		// fmt.Println(start, cpt, cpt <= start, start < cpt+int(n))
 		if (cpt <= start && start < cpt+int(n)) || (cpt > start && cpt < end) {
-			// math min 0, start - cpt
-			for j := start - cpt; j+cpt < end && j < int(n); j++ {
+			for j := minpt( start, cpt ); j+cpt < end && j < int(n); j++ {
 
-				fmt.Println("Take", i, "point", j, n, cpt, start, end)
+				binary.LittleEndian.PutUint32(data[off+4:off+8],   math.Float32bits(m.Pts[uint16(i)][j].GetX()))
+				binary.LittleEndian.PutUint32(data[off+8:off+12],  math.Float32bits(m.Pts[uint16(i)][j].GetY()))
+				binary.LittleEndian.PutUint32(data[off+12:off+16], math.Float32bits(m.Pts[uint16(i)][j].GetZ()))
 
+				off += 16
+
+				// fmt.Println("Take", i, "point", j, n, cpt, start, end)
+				// fmt.Println( math.Float32bits( m.Pts[uint16(i)][j].GetX() ) )
 			}
 		}
 		cpt += int(n)
 	}
 
-	fmt.Println("-----------request end-----------------")
+	// fmt.Println("-----------request end-----------------")
 
-	// var data []byte
-	// // lets define first byte length of folloup points
-	// data = make([]byte, 4+(12*sz))
-	// binary.LittleEndian.PutUint32(data[0:4], uint32(sz))
-	// for i := 0; i < sz; i++ {
-	// 	off := i * 12
-	// 	binary.LittleEndian.PutUint32(data[off+4:off+8], math.Float32bits(m.Pts[start+i].GetX()))
-	// 	binary.LittleEndian.PutUint32(data[off+8:off+12], math.Float32bits(m.Pts[start+i].GetY()))
-	// 	binary.LittleEndian.PutUint32(data[off+12:off+16], math.Float32bits(m.Pts[start+i].GetZ()))
-
-	// 	fmt.Println(m.Pts[i].GetX(), m.Pts[i].GetY(), m.Pts[i].GetZ())
-	// }
-
-	// set_resp_headers(w)
-	// w.Header().Set("Content-Type", "application/octet-stream")
-	// w.Header().Set("Content-Length", strconv.Itoa(len(data)))
-	// binary.Write(w, binary.LittleEndian, data)
+	set_resp_headers(w)
+	w.Header().Set("Content-Type", "application/octet-stream")
+	w.Header().Set("Content-Length", strconv.Itoa(len(data)))
+	binary.Write(w, binary.LittleEndian, data)
 
 	// fmt.Printf("No pts: %d\n", sz)
 }
@@ -132,4 +132,12 @@ func main() {
 	http.HandleFunc("/points/", DataHandeler)
 	http.Handle("/", http.FileServer(http.Dir("./static")))
 	fmt.Println(http.ListenAndServe(fmt.Sprintf(":%d", PORT), nil))
+}
+
+
+func minpt(a int,b int) int{
+	if a - b > 0 {
+		return a - b
+	}
+	return 0
 }
