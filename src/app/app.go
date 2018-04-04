@@ -56,20 +56,17 @@ func DataHandeler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// fmt.Println(start, cpt, n)
-		if cpt <= start && start < cpt+int(n)-1 {
-			deatl with it later, take pts from somewhere!
-			fmt.Println("Take", i, n, cpt, start, end)
+		// fmt.Println(start, cpt, cpt <= start, start < cpt+int(n))
+		if (cpt <= start && start < cpt+int(n)) || (cpt > start && cpt < end) {
+			// math min 0, start - cpt
+			for j := start - cpt; j+cpt < end && j < int(n); j++ {
+
+				fmt.Println("Take", i, "point", j, n, cpt, start, end)
+
+			}
 		}
 		cpt += int(n)
 	}
-
-	// cpt := 0
-	// for i, n := range m.Sizes {
-	// 	// cpt upper bound for the index!
-	// 	if int(n)+cpt-1 > start {
-	// 		...
-	// 	}
-	// }
 
 	fmt.Println("-----------request end-----------------")
 
