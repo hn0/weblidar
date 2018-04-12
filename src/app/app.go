@@ -13,7 +13,7 @@ import (
 )
 
 var PORT int = 3000
-var CLIENT_BUFFER = 5
+var CLIENT_BUFFER = 1500
 var m *model.Model
 
 func InfoHandeler(w http.ResponseWriter, r *http.Request) {

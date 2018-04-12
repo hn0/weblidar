@@ -24,14 +24,17 @@ Stream.prototype.start_streaming = function()
 
 Stream.prototype.stop_streaming = function()
 {
-    console.log( 'implement stream control!' );
+    this.streams.length = 0;
+    this.listeners['done'].forEach( function(callback){
+        callback();
+    });
 };
 
 Stream.prototype.init_stream = function(reqid)
 {
     this.get( reqid )
         .then( function( data ){
-            if( this.parse_response( data ) ){
+            if( this.parse_response( data ) && this.streams.length ){
                 
                 let currentlen = this.points;
                 this.listeners['pointbatch'].forEach( function(callback){

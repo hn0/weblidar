@@ -34,7 +34,7 @@ func CreateModel(path string) *Model {
 	defer lf.Close()
 
 	m.Numpts = lf.Header.NumberPoints
-	m.Numpts = 50000
+	// m.Numpts = 50000
 	if m.Numpts > 0 {
 		fmt.Printf("Processing input dataset containing %d points\n", m.Numpts)
 
@@ -96,8 +96,14 @@ func CreateModel(path string) *Model {
 
 			// domain of the dist 0 .. sqrt(3)
 			idist := int(math.Floor(float64(len(sortgrd)) * float64(dist[0]/sqrt3)))
+			if idist > len(sortgrd) - 1{
+				idist = len(sortgrd) - 1
+			}
 			// angle is in the range 0 .. 2Pi
 			angdist := int(math.Floor(float64(len(sortgrd[0])) * float64(dist[1]/(2*math.Pi))))
+			if angdist > len(sortgrd[0]) - 1{
+				angdist = len(sortgrd[0]) - 1
+			}
 			// fmt.Println(sortgrd[idist][angdist], idist, angdist)
 
 			pt := point{
@@ -123,7 +129,7 @@ func CreateModel(path string) *Model {
 		if valid {
 			m.Valid = true
 			// fmt.Println(m.Pts)
-			fmt.Println(m.Sizes)
+			// fmt.Println(m.Sizes)
 		}
 
 	}
